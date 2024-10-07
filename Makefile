@@ -8,15 +8,19 @@ CFLAGS = -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wfloat-equal -Wpointer-
 SRC = $(wildcard *.c)
 EXE = $(SRC:.c=)
 
+# Directories
+SRC_DIR = src
+INCLUDE_DIR = include
+
 # Default target (build all executables)
 all: $(EXE)
 
 # Pattern rule for compiling each .c file into an executable
-%: %.c
+%: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-call: call.c
-	$(CC) $(CFLAGS) -o call call.c
+call: $(SRC_DIR)/call.c $(SRC_DIR)/globals.c
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -o call $(SRC_DIR)/call.c $(SRC_DIR)/globals.c
 
 # Clean up object files and executables
 clean:

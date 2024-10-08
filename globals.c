@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -9,7 +10,7 @@
 
 #include "globals.h"
 
-bool isValidFloor(char *floor) {
+bool is_valid_floor(char *floor) {
 	size_t len = strlen(floor);
 
 	if (len > 3) {
@@ -85,4 +86,11 @@ char *receive_msg(int fd) {
 	buf[len] = '\0';
 	recv_looped(fd, buf, len);
 	return buf;
+}
+
+void set_field(car_shared_mem *state, void *field, void *new_value, size_t size) {
+	pthread_mutex_lock(&state->mutex);
+	memcpy(field, new_value, size);
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 }

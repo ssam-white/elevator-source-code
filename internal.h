@@ -4,10 +4,9 @@
 
 typedef enum {
 	I_SUCCESS = 0,
-	I_CONNECTION_ERROR = -1,
-	I_SERVICE_MODE_ERROR = -2,
-	I_DOORS_ERROR = -3,
-	I_BETWEEN_FLOORS_ERROR = -4,
+	I_SERVICE_MODE_ERROR = -1,
+	I_DOORS_ERROR = -2,
+	I_BETWEEN_FLOORS_ERROR = -3,
 } icontroller_error_t;
 
 typedef struct {
@@ -20,21 +19,21 @@ typedef struct {
 
 void icontroller_init(icontroller_t *, const char *, const char *);
 void icontroller_deinit(icontroller_t *);
-int icontroller_connect(icontroller_t *);
-bool opIs(icontroller_t *, const char *);
-bool statusIs(icontroller_t *, const char *);
-void printState(car_shared_mem *);
-int decrementFloor(char *);
-int incrementFloor(char *);
-int carCanMove(icontroller_t *);
+bool icontroller_connect(icontroller_t *);
+bool op_is(icontroller_t *, const char *);
+bool status_is(icontroller_t *, const char *);
+void print_state(car_shared_mem *);
+int decrement_floor(char *);
+int increment_floor(char *);
+int can_car_move(icontroller_t *);
 
-int handleOperation(icontroller_t *);
+int handle_operation(icontroller_t *);
 
 // operations
 void open_doors(car_shared_mem *);
 void close_doors(car_shared_mem *);
 void stop_car(car_shared_mem *);
 void service_on(car_shared_mem *);
-int up(icontroller_t *);
-int down(icontroller_t *);
+int up(car_shared_mem *);
+int down(car_shared_mem *);
 

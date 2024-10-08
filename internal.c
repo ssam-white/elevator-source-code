@@ -1,4 +1,6 @@
+#include <stdint.h>
 #include <string.h>
+#include <pthread.h>
 #include <fcntl.h>
 #include <semaphore.h>
 #include <stdbool.h>
@@ -19,15 +21,17 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	// initialize a new internal controller 
 	icontroller_t icontroller;
 	icontroller_init(&icontroller, argv[1], argv[2]);
 
-	if (icontroller_connect(&icontroller) < 0) {
+	// attempt to connect to the car shared emory object
+	if (!icontroller_connect(&icontroller)) {
 		printf("Unable to access car %s.\n", icontroller.car_name);
 		return 1;
 	}
 
-	switch (handleOperation(&icontroller)) {
+	switch (handle_operation(&icontroller)) {
 		case I_SERVICE_MODE_ERROR:
 			printf("Operation only allowed in service mode.\n");
 			break;
@@ -38,9 +42,9 @@ int main(int argc, char *argv[]) {
 			printf("Operation not allowed while elevator is moving.\n");
 			break;
 		case I_SUCCESS:
-			printState(icontroller.state);
+			// print_state(icontroller.state);
 			break;
-		defult:
+		default:
 			break;
 	}
 
@@ -70,26 +74,26 @@ void icontroller_deinit(icontroller_t *icontroller) {
 
 }
 
-int icontroller_connect(icontroller_t *icontroller) {
+bool icontroller_connect(icontroller_t *icontroller) {
 	icontroller->fd = shm_open(icontroller->shm_name, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if (icontroller->fd < 0) {
-		return -1;
+		return false;
 	}
 
 	 icontroller->state = mmap(0, sizeof(*icontroller->state), PROT_READ | PROT_WRITE, MAP_SHARED, icontroller->fd, 0);
 
-	return 0;
+	return true;
 }
 
-bool opIs(icontroller_t *icontroller, const char *op) {
+bool op_is(icontroller_t *icontroller, const char *op) {
 	return strcmp(icontroller->operation, op) == 0;
 }
 
-bool statusIs(icontroller_t *icontroller, const char *status) {
+bool status_is(icontroller_t *icontroller, const char *status) {
 	return strcmp(icontroller->state->status, status) == 0;
 }
 
-void printState(car_shared_mem *state) {
+void print_state(car_shared_mem *state) {
 	printf("Current state: {%s, %s, %s, %d, %d, %d, %d, %d, %d, %d}\n",
 		state->current_floor,
 		state->destination_floor,
@@ -104,69 +108,80 @@ void printState(car_shared_mem *state) {
 	);
 }
 
-int carCanMove(icontroller_t *icontroller) {
+int can_car_move(icontroller_t *icontroller) {
 	if (icontroller->state->individual_service_mode == 0) {
 		return I_SERVICE_MODE_ERROR;
-	} else if (statusIs(icontroller, "Between")) {
+	} else if (status_is(icontroller, "Between")) {
 		return I_BETWEEN_FLOORS_ERROR;
-	} else if(!statusIs(icontroller, "Closed")) {
+	} else if(!status_is(icontroller, "Closed")) {
 		return I_DOORS_ERROR;
 	} 
 	return I_SUCCESS;
 }
 
-int handleOperation(icontroller_t *icontroller) {
+int handle_operation(icontroller_t *icontroller) {
 	car_shared_mem *state = icontroller->state;
 
-	if (opIs(icontroller, "open")) {
+	if (op_is(icontroller, "open")) {
 		open_doors(state);
-	}	 else if(opIs(icontroller, "close")) {
+	}	 else if(op_is(icontroller, "close")) {
 		close_doors(state);
-	} else if(opIs(icontroller, "stop")) {
+	} else if(op_is(icontroller, "stop")) {
 		stop_car(state);
-	} else if (opIs(icontroller, "up")) {
-		return up(icontroller);
-	} else if (opIs(icontroller, "down")) {
-		return down(icontroller);
-	} else if (opIs(icontroller, "service_on")) {
+	} else if (op_is(icontroller, "service_on")) {
 		service_on(state);
+	} else if (op_is(icontroller, "up") || op_is(icontroller, "down")) {
+		return  can_car_move(icontroller) < 0 ? can_car_move(icontroller) :
+			op_is(icontroller, "up") ? up(state) : down(state);
 	}
 	return I_SUCCESS;
 }
 
 void open_doors(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
 	state->open_button = 1;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 }
 
 void close_doors(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
 	state->close_button = 1;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 }
 
 void stop_car(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
 	state->emergency_stop = 1;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 }
 
 void service_on(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
 	state->individual_service_mode = 1;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 }
 
-int up(icontroller_t *icontroller) {
-	int can_move = carCanMove(icontroller);
-	if (can_move < 0) {
-		return can_move;
-	}
-	return incrementFloor(icontroller->state->destination_floor);;
+int up(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
+	int result = increment_floor(state->destination_floor);;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
+	return result;
 }
 
-int down(icontroller_t *icontroller) {
-	int can_move = carCanMove(icontroller);
-	if (can_move < 0) {
-		return can_move;
-	}
-	return decrementFloor(icontroller->state->destination_floor);
+int down(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
+	int result = decrement_floor(state->destination_floor);;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
+	return result;
 }
 
-int decrementFloor(char *floor) {
+int decrement_floor(char *floor) {
 	int floor_number;
 
 	if (floor[0] == 'B') {
@@ -187,7 +202,7 @@ int decrementFloor(char *floor) {
 	return 0;
 }
 
-int incrementFloor(char *floor) {
+int increment_floor(char *floor) {
 	int floor_number;
 	if (floor[0] == 'B') {
 		floor_number = atoi(floor + 1);

@@ -21,8 +21,9 @@ typedef struct {
 	uint8_t emergency_mode;          // 1 if in emergency mode, else 0
 } car_shared_mem;
 
-bool isValidFloor(char *);
+bool is_valid_floor(char *);
 void send_looped(int, const void *, size_t);
 void send_message(int, const char *);
 void recv_looped(int, void *, size_t);
 char *receive_msg(int);
+void set_field(car_shared_mem *, void *, void *, size_t);

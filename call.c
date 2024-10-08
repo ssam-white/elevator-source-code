@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[]) {
 	// validate the command line arguments
-	if (argc != 3 || !isValidFloor(argv[1]) || !isValidFloor(argv[2])) {
+	if (argc != 3 || !is_valid_floor(argv[1]) || !is_valid_floor(argv[2])) {
 		printf("Invalid floor(s) specified.\n");
 		return 1;
 	}

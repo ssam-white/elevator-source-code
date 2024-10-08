@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
 		case I_BETWEEN_FLOORS_ERROR:
 			printf("Operation not allowed while elevator is moving.\n");
 			break;
-		case I_SUCCESS:
-			// print_state(icontroller.state);
+		case I_INVALID_OPERATION:
+			printf("Invalid operation.\n");
 			break;
 		default:
 			break;
@@ -130,9 +130,13 @@ int handle_operation(icontroller_t *icontroller) {
 		stop_car(state);
 	} else if (op_is(icontroller, "service_on")) {
 		service_on(state);
+	} else if (op_is(icontroller, "service_off")) {
+		service_off(state);
 	} else if (op_is(icontroller, "up") || op_is(icontroller, "down")) {
 		return  can_car_move(icontroller) < 0 ? can_car_move(icontroller) :
 			op_is(icontroller, "up") ? up(state) : down(state);
+	} else {
+		return I_INVALID_OPERATION;
 	}
 	return I_SUCCESS;
 }
@@ -161,13 +165,21 @@ void stop_car(car_shared_mem *state) {
 void service_on(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
 	state->individual_service_mode = 1;
+	state->emergency_mode = 0;
+	pthread_cond_signal(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
+}
+
+void service_off(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
+	state->individual_service_mode = 0;
 	pthread_cond_signal(&state->cond);
 	pthread_mutex_unlock(&state->mutex);
 }
 
 int up(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
-	int result = increment_floor(state->destination_floor);;
+	int result = increment_floor(state->current_floor, state->destination_floor);;
 	pthread_cond_signal(&state->cond);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
@@ -175,48 +187,48 @@ int up(car_shared_mem *state) {
 
 int down(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
-	int result = decrement_floor(state->destination_floor);;
+	int result = decrement_floor(state->current_floor, state->destination_floor);;
 	pthread_cond_signal(&state->cond);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
 
-int decrement_floor(char *floor) {
+int decrement_floor(char *current_floor, char *destination_floor) {
 	int floor_number;
 
-	if (floor[0] == 'B') {
-		floor_number = atoi(floor + 1);
+	if (current_floor[0] == 'B') {
+		floor_number = atoi(current_floor + 1);
 		if (floor_number == 99) {
 			return -3;
 		} else {
-			sprintf(floor, "B%d", floor_number + 1);
+			sprintf(destination_floor, "B%d", floor_number + 1);
 		}
 	} else {
-		floor_number = atoi(floor);
+		floor_number = atoi(current_floor);
 		if (floor_number == 1) {
-			strcpy(floor, "B1");
+			strcpy(destination_floor, "B1");
 		} else {
-			sprintf(floor, "%d", floor_number - 11);
+			sprintf(destination_floor, "%d", floor_number - 1);
 		}
 	}
 	return 0;
 }
 
-int increment_floor(char *floor) {
+int increment_floor(char *current_floor, char *destination_floor) {
 	int floor_number;
-	if (floor[0] == 'B') {
-		floor_number = atoi(floor + 1);
+	if (current_floor[0] == 'B') {
+		floor_number = atoi(current_floor + 1);
 		if (floor_number == 1) {
-			strcpy(floor, "1");
+			strcpy(destination_floor, "1");
 		} else {
-			sprintf(floor, "B%d", floor_number);
+			sprintf(destination_floor, "B%d", floor_number - 1);
 		}
 	} else {
-		floor_number = atoi(floor);
+		floor_number = atoi(current_floor);
 		if (floor_number == 999) {
 			return -1;
 		} else {
-			sprintf(floor, "%d", floor_number + 1);
+			sprintf(destination_floor, "%d", floor_number + 1);
 		}
 	}
 	return 0;

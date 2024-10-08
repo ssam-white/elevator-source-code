@@ -1,5 +1,10 @@
-#include <pthread.h>
+#pragma once
+
+#include <stdbool.h>
 #include <stdint.h>
+
+#define PORT 3000
+#define URL "127.0.0.1"
 
 typedef struct {
 	pthread_mutex_t mutex;           // Locked while accessing struct contents
@@ -16,15 +21,8 @@ typedef struct {
 	uint8_t emergency_mode;          // 1 if in emergency mode, else 0
 } car_shared_mem;
 
-typedef struct {
-	const char *name;
-	const char *lowest_floor;
-	const char *highest_floor;
-	const char *delay;
-	int fd;
-	car_shared_mem *state;
-} car_t;
-
-void car_init(car_t*, char*, char*, char*, char*);
-bool create_shared_object( car_t*, const char*);
-void print_car(car_t*);
+bool isValidFloor(char *);
+void send_looped(int, const void *, size_t);
+void send_message(int, const char *);
+void recv_looped(int, void *, size_t);
+char *receive_msg(int);

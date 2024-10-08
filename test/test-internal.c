@@ -50,6 +50,9 @@ int main()
   // Testing up and down (while between floors)
   test_operation(shm, "Between", "up", "Operation not allowed while elevator is moving.");
   test_operation(shm, "Between", "down", "Operation not allowed while elevator is moving.");
+
+  printf("\nUp to here\n\n");
+
   // Testing up and down (with various floors)
   test_operation_floor(shm, "Closed", "up", "Current state: {B32, B31, Closed, 1, 1, 0, 0, 1, 1, 0}", "B32");
   test_operation_floor(shm, "Closed", "down", "Current state: {617, 616, Closed, 1, 1, 0, 0, 1, 1, 0}", "617");

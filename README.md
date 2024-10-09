@@ -1,11 +1,12 @@
 # Elevator Control System
 
 This is a simple elevator control system programed in the c
-programing language.
+programming language.
 
-The system consists of the following modules:
-    - The call pad module
-- The controller module
-- The car module
-- The internal controlls module
-- The saftey system module
+Modules TODO:
+- [x] call pad
+- [x] internal controller
+- [ ] safety system
+- [ ] elevator car
+- [ ] controller
+

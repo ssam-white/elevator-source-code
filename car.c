@@ -34,13 +34,13 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	car->delay = delay;
 
 	// create the shared memory object for the cars state
-	if (!create_shared_object(car, car->name)) {
+	if (!create_shared_mem(car, car->name)) {
 		perror("Failed to create shared object");
 		exit(1);
 	}
 }
 
-bool create_shared_object( car_t* car, const char* name ) {
+bool create_shared_mem( car_t* car, const char* name ) {
     // Remove any previous instance of the shared memory object, if it exists.
 	shm_unlink(name);
 

@@ -57,9 +57,8 @@ void icontroller_init(icontroller_t *icontroller, const char *car_name, const ch
 	icontroller->car_name = car_name;
 	icontroller->operation = operation;
 
-	char shm_name[strlen(icontroller->car_name) + 4];
-	sprintf(shm_name, "/car%s", icontroller->car_name);
-	icontroller->shm_name = shm_name;
+	icontroller->shm_name = malloc(strlen(icontroller->car_name) + 4);
+	sprintf(icontroller->shm_name, "/car%s", icontroller->car_name);
 
 	icontroller->fd = -1;
 }
@@ -67,10 +66,21 @@ void icontroller_init(icontroller_t *icontroller, const char *car_name, const ch
 void icontroller_deinit(icontroller_t *icontroller) {
 	icontroller->car_name = NULL;
 	icontroller->operation = NULL;
-	icontroller->fd = -1;
-	shm_unlink(icontroller->shm_name);
-	icontroller->shm_name = NULL;
-	munmap(icontroller->state, sizeof(car_shared_mem));
+
+	if (icontroller->fd >= 0) {
+		close(icontroller->fd);
+		icontroller->fd = -1;
+	}
+
+	if (icontroller->shm_name != NULL) {
+		free(icontroller->shm_name);
+		icontroller->shm_name = NULL;
+	}
+
+	if (icontroller->state != NULL) {
+		munmap(icontroller->state, sizeof(car_shared_mem));
+		icontroller->state = NULL;
+	}
 
 }
 
@@ -81,6 +91,9 @@ bool icontroller_connect(icontroller_t *icontroller) {
 	}
 
 	 icontroller->state = mmap(0, sizeof(*icontroller->state), PROT_READ | PROT_WRITE, MAP_SHARED, icontroller->fd, 0);
+	if (icontroller->state == NULL) {
+		return false;
+	}
 
 	return true;
 }
@@ -199,7 +212,7 @@ int decrement_floor(char *current_floor, char *destination_floor) {
 	if (current_floor[0] == 'B') {
 		floor_number = atoi(current_floor + 1);
 		if (floor_number == 99) {
-			return -3;
+			return I_MIN_FLOOR_ERROR;
 		} else {
 			sprintf(destination_floor, "B%d", floor_number + 1);
 		}
@@ -226,7 +239,7 @@ int increment_floor(char *current_floor, char *destination_floor) {
 	} else {
 		floor_number = atoi(current_floor);
 		if (floor_number == 999) {
-			return -1;
+			return I_MAX_FLOOR_ERROR;
 		} else {
 			sprintf(destination_floor, "%d", floor_number + 1);
 		}

@@ -1,45 +1,12 @@
-#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
-#include <ctype.h>
 #include <stdint.h>
 #include <arpa/inet.h>
 
-#include "globals.h"
-
-bool is_valid_floor(char *floor) {
-	size_t len = strlen(floor);
-
-	if (len > 3) {
-		return false;
-	}
-
-	if (floor[0] == 'B') {
-		if (len == 1) {
-			return false;
-		}
-
-		for (size_t i = 1; i < len; i++) {
-			if (!isdigit((unsigned char) floor[i])) {
-				return false;
-			}
-		}
-		return true;
-
-	}
-
-	for (size_t i = 0; i < len; i++) {
-		if (!isdigit((unsigned char) floor[i])) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
+#include "tcpip.h"
 
 void send_looped(int fd, const void *buf, size_t sz) {
 	const char *ptr = buf;
@@ -52,12 +19,12 @@ void send_looped(int fd, const void *buf, size_t sz) {
 			exit(1);
 		}
 		ptr += sent;
-		remain -= sent;
+		remain -= (long unsigned) sent;
 	}
 }
 
 void send_message(int fd, const char *buf) {
-	uint32_t len = htonl(strlen(buf));
+	uint32_t len = htonl((uint32_t) strlen(buf));
 	send_looped(fd, &len, sizeof(len));
 	send_looped(fd, buf, strlen(buf));
 }
@@ -73,7 +40,7 @@ void recv_looped(int fd, void *buf, size_t sz) {
 			exit(1);
 		}
 		ptr += received;
-		remain -= received;
+		remain -= (unsigned long) received;
 	}
 }
 
@@ -88,9 +55,3 @@ char *receive_msg(int fd) {
 	return buf;
 }
 
-void set_field(car_shared_mem *state, void *field, void *new_value, size_t size) {
-	pthread_mutex_lock(&state->mutex);
-	memcpy(field, new_value, size);
-	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
-}

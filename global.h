@@ -3,9 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PORT 3000
-#define URL "127.0.0.1"
-
 typedef struct {
 	pthread_mutex_t mutex;           // Locked while accessing struct contents
 	pthread_cond_t cond;             // Signalled when the contents change
@@ -22,8 +19,4 @@ typedef struct {
 } car_shared_mem;
 
 bool is_valid_floor(char *);
-void send_looped(int, const void *, size_t);
-void send_message(int, const char *);
-void recv_looped(int, void *, size_t);
-char *receive_msg(int);
 void set_field(car_shared_mem *, void *, void *, size_t);

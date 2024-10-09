@@ -1,6 +1,6 @@
 #pragma once
 
-#include "globals.h"
+#include "global.h"
 
 typedef enum {
 	I_SUCCESS = 0,
@@ -8,12 +8,14 @@ typedef enum {
 	I_DOORS_ERROR = -2,
 	I_BETWEEN_FLOORS_ERROR = -3,
 	I_INVALID_OPERATION = -4,
+	I_MAX_FLOOR_ERROR = -5,
+	I_MIN_FLOOR_ERROR = -6,
 } icontroller_error_t;
 
 typedef struct {
 	const char *car_name;
 	const char *operation;
-	const char *shm_name;
+	char *shm_name;
 	int fd;
 	car_shared_mem *state;
 } icontroller_t;

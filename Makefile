@@ -11,11 +11,11 @@ all: $(EXE)
 %: %.c
 	$(CC) -o $@ $< $(CFLAGS)
 
-call: call.c globals.c
-	$(CC) -o call call.c globals.c $(CFLAGS)
+call: call.c global.c tcpip.c
+	$(CC) -o call call.c global.c tcpip.c $(CFLAGS)
 
-internal: internal.c globals.c
-	$(CC) -o internal internal.c globals.c $(CFLAGS)
+internal: internal.c global.c
+	$(CC) -o internal internal.c global.c $(CFLAGS)
 
 # Clean up object files and executables
 clean:

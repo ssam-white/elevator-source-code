@@ -1,10 +1,12 @@
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "call.h"
-#include "globals.h"
+#include "global.h"
+#include "tcpip.h"
 
 int main(int argc, char *argv[]) {
 	// validate the command line arguments
@@ -13,7 +15,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	// initialize the call pad opject
+	// initialize the call pad object
 	call_pad_t call_pad;
 	call_pad_init(&call_pad, argv[1], argv[2]);
 
@@ -23,13 +25,13 @@ int main(int argc, char *argv[]) {
 	}
 
 	// connect the call pad to the controller
-	if (call_pad_connect(&call_pad) < 0) {
+	if (!call_pad_connect(&call_pad)) {
 		printf("Unable to connect to elevator system.\n");
 		return 1;
 	}
 
-	char msg[100];
-	sprintf(msg, "CALL %s %s", call_pad.source_floor, call_pad.destination_floor);
+	char msg[13];
+	snprintf(msg, sizeof(msg), "CALL %s %s", call_pad.source_floor, call_pad.destination_floor);
 	send_message(call_pad.sock, msg);
 
 	char *response = receive_msg(call_pad.sock);
@@ -38,6 +40,8 @@ int main(int argc, char *argv[]) {
 	} else {
 		printf("%s is arriving.\n", response);
 	}
+
+	free(response);
 	
 
 	// deinitialize the call pad object
@@ -46,8 +50,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void call_pad_init(call_pad_t *call_pad, const char *source_floor,
-				   const char *destination_floor) {
+void call_pad_init(call_pad_t *call_pad, const char *source_floor, const char *destination_floor) {
 	call_pad->source_floor = source_floor;
 	call_pad->destination_floor = destination_floor;
 	call_pad->sock = -1;
@@ -57,13 +60,16 @@ void call_pad_init(call_pad_t *call_pad, const char *source_floor,
 void call_pad_deinit(call_pad_t *call_pad) {
 	call_pad->source_floor = NULL;
 	call_pad->destination_floor = NULL;
-	close(call_pad->sock);
+	if (call_pad->sock == 0) {
+		close(call_pad->sock);
+		call_pad->sock = -1;
+	}
 }
 
-int call_pad_connect(call_pad_t *call_pad) {
+bool call_pad_connect(call_pad_t *call_pad) {
 	// create the socket
 	if ((call_pad->sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		return CALL_SOCK_CREATION_ERROR;
+		return false;
 	}
 
 	// set the sockets address
@@ -71,15 +77,15 @@ int call_pad_connect(call_pad_t *call_pad) {
 	call_pad->server_addr.sin_port = htons(PORT);
 	if (inet_pton(AF_INET, URL, &call_pad->server_addr.sin_addr) <= 0) {
 		close(call_pad->sock);
-		return CALL_INVALID_ADDRESS_ERROR;
+		return false;
 	}
 
 	// connect to the server
 	if (connect(call_pad->sock, (struct sockaddr *)&call_pad->server_addr,
 			 sizeof(call_pad->server_addr)) < 0) {
 		close(call_pad->sock);
-		return CALL_CONNECTION_ERROR;
+		return false;
 	}
 
-	return SUCCESS;
+	return true;
 }

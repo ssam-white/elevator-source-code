@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#include "globals.h"
+#include "global.h"
 
 typedef struct {
 	const char *name;
@@ -13,5 +13,5 @@ typedef struct {
 } car_t;
 
 void car_init(car_t*, char*, char*, char*, char*);
-bool create_shared_object( car_t*, const char*);
+bool create_shared_mem( car_t*, const char*);
 void print_car(car_t*);

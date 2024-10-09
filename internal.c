@@ -31,6 +31,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	pthread_mutex_lock(&icontroller.state->mutex);
+
 	switch (handle_operation(&icontroller)) {
 		case I_SERVICE_MODE_ERROR:
 			printf("Operation only allowed in service mode.\n");
@@ -48,7 +50,10 @@ int main(int argc, char *argv[]) {
 			break;
 	}
 
+	pthread_mutex_unlock(&icontroller.state->mutex);
+
 	icontroller_deinit(&icontroller);
+
 
 	return 0;
 }
@@ -102,31 +107,16 @@ bool op_is(icontroller_t *icontroller, const char *op) {
 	return strcmp(icontroller->operation, op) == 0;
 }
 
-bool status_is(icontroller_t *icontroller, const char *status) {
-	return strcmp(icontroller->state->status, status) == 0;
+bool status_is(car_shared_mem *state, const char *status) {
+	return strcmp(state->status, status) == 0;
 }
 
-void print_state(car_shared_mem *state) {
-	printf("Current state: {%s, %s, %s, %d, %d, %d, %d, %d, %d, %d}\n",
-		state->current_floor,
-		state->destination_floor,
-		state->status,
-		state->open_button,
-		state->close_button,
-		state->door_obstruction,
-		state->overload,
-		state->emergency_stop,
-		state->individual_service_mode,
-		state->emergency_mode
-	);
-}
-
-int can_car_move(icontroller_t *icontroller) {
-	if (icontroller->state->individual_service_mode == 0) {
+int can_car_move(car_shared_mem *state) {
+	if (state->individual_service_mode == 0) {
 		return I_SERVICE_MODE_ERROR;
-	} else if (status_is(icontroller, "Between")) {
+	} else if (status_is(state, "Between")) {
 		return I_BETWEEN_FLOORS_ERROR;
-	} else if(!status_is(icontroller, "Closed")) {
+	} else if(!status_is(state, "Closed")) {
 		return I_DOORS_ERROR;
 	} 
 	return I_SUCCESS;
@@ -136,9 +126,9 @@ int handle_operation(icontroller_t *icontroller) {
 	car_shared_mem *state = icontroller->state;
 
 	if (op_is(icontroller, "open")) {
-		open_doors(state);
+		open_button_on(state);
 	}	 else if(op_is(icontroller, "close")) {
-		close_doors(state);
+		close_button_on(state);
 	} else if(op_is(icontroller, "stop")) {
 		stop_car(state);
 	} else if (op_is(icontroller, "service_on")) {
@@ -146,7 +136,7 @@ int handle_operation(icontroller_t *icontroller) {
 	} else if (op_is(icontroller, "service_off")) {
 		service_off(state);
 	} else if (op_is(icontroller, "up") || op_is(icontroller, "down")) {
-		return  can_car_move(icontroller) < 0 ? can_car_move(icontroller) :
+		return  can_car_move(state) < 0 ? can_car_move(state) :
 			op_is(icontroller, "up") ? up(state) : down(state);
 	} else {
 		return I_INVALID_OPERATION;
@@ -154,55 +144,45 @@ int handle_operation(icontroller_t *icontroller) {
 	return I_SUCCESS;
 }
 
-void open_doors(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
+void open_button_on(car_shared_mem *state) {
 	state->open_button = 1;
 	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
 }
 
-void close_doors(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
+void close_button_on(car_shared_mem *state) {
 	state->close_button = 1;
 	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
 }
 
 void stop_car(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
 	state->emergency_stop = 1;
 	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
 }
 
 void service_on(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
 	state->individual_service_mode = 1;
-	state->emergency_mode = 0;
-	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
+	if (state->emergency_mode == 1) {
+		state->emergency_mode = 0;
+		pthread_cond_broadcast(&state->cond);
+	} else {
+		pthread_cond_signal(&state->cond);
+	}
 }
 
 void service_off(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
 	state->individual_service_mode = 0;
 	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
 }
 
 int up(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
 	int result = increment_floor(state->current_floor, state->destination_floor);;
 	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
 
 int down(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
 	int result = decrement_floor(state->current_floor, state->destination_floor);;
 	pthread_cond_signal(&state->cond);
-	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
 

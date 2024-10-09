@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <string.h>
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "global.h"
 #include "car.h"
 
 int main(int argc, char *argv[]) {
@@ -22,22 +24,44 @@ int main(int argc, char *argv[]) {
 	car_t car;
 	car_init(&car, argv[1], argv[2], argv[3], argv[4]);
 
-	print_car(&car);
+	pid_t car_thread = start_car(&car);
+
+	wait(&car_thread);
 
 	return 0;
 }
 
+pid_t start_car(car_t *car) {
+	pid_t p;
+	p = fork();
+	if (p == 0) {
+		pthread_mutex_lock(&car->state->mutex);
+		pthread_cond_wait(&car->state->cond, &car->state->mutex);
+		pthread_mutex_unlock(&car->state->mutex);
+
+		if (car->state->open_button == 1) {
+			cycle_open(car);
+		} 
+	}
+	return p;
+}
+
 void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, char* delay) {
 	car->name = name;
+	car->shm_name = get_shm_name(car->name);
 	car->lowest_floor = lowest_floor;
 	car->highest_floor = highest_floor;
-	car->delay = delay;
+	car->delay = atoi(delay) * 1000;
 
 	// create the shared memory object for the cars state
 	if (!create_shared_mem(car, car->name)) {
 		perror("Failed to create shared object");
 		exit(1);
 	}
+
+	init_shm(car->state);
+	strcpy(car->state->current_floor, car->lowest_floor);
+	strcpy(car->state->destination_floor, car->lowest_floor);
 }
 
 bool create_shared_mem( car_t* car, const char* name ) {
@@ -50,7 +74,7 @@ bool create_shared_mem( car_t* car, const char* name ) {
     // Create the shared memory object, allowing read-write access by all users,
     // and saving the resulting file descriptor in car->fd. If creation failed,
     // ensure that car->state is NULL and return false.
-	car->fd = shm_open(car->name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	car->fd = shm_open(car->shm_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if (car->fd == -1) {
 		car->state = NULL;
 		return false;
@@ -75,11 +99,28 @@ bool create_shared_mem( car_t* car, const char* name ) {
 }
 
 void print_car(car_t* car) {
-	printf("car_t: { name: %s, lowest_floor: %s, highest_floor: %s, delay: %s }\n",
+	printf("car_t: { name: %s, shm_name: %s, lowest_floor: %s, highest_floor: %s, delay: %d }\n",
 		car->name,
+		car->shm_name,
 		car->lowest_floor,
 		car->highest_floor,
 		car->delay
 	);
 }
 
+
+void cycle_open(car_t *car) {
+	pthread_mutex_lock(&car->state->mutex);
+	car->state->open_button = 0;
+	pthread_cond_broadcast(&car->state->cond);
+	pthread_mutex_unlock(&car->state->mutex);
+
+	char *states[4] = {"Opening", "Open", "Closing", "Closed"};
+	for (size_t i = 0; i < 4; i++) {
+		pthread_mutex_lock(&car->state->mutex);
+		strcpy(car->state->status, states[i]);
+		pthread_cond_broadcast(&car->state->cond);
+		pthread_mutex_unlock(&car->state->mutex);
+		usleep(car->delay);
+	}
+}

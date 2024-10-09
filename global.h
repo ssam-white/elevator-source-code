@@ -1,7 +1,11 @@
 #pragma once
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>
+
+#define MILLISECOND 1000 // 1ms
 
 typedef struct {
 	pthread_mutex_t mutex;           // Locked while accessing struct contents
@@ -18,5 +22,9 @@ typedef struct {
 	uint8_t emergency_mode;          // 1 if in emergency mode, else 0
 } car_shared_mem;
 
+void init_shm(car_shared_mem *);
+void reset_shm(car_shared_mem *);
+
 bool is_valid_floor(char *);
 void set_field(car_shared_mem *, void *, void *, size_t);
+char *get_shm_name(const char *);

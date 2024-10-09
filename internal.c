@@ -146,17 +146,17 @@ int handle_operation(icontroller_t *icontroller) {
 
 void open_button_on(car_shared_mem *state) {
 	state->open_button = 1;
-	pthread_cond_signal(&state->cond);
+	pthread_cond_broadcast(&state->cond);
 }
 
 void close_button_on(car_shared_mem *state) {
 	state->close_button = 1;
-	pthread_cond_signal(&state->cond);
+	pthread_cond_broadcast(&state->cond);
 }
 
 void stop_car(car_shared_mem *state) {
 	state->emergency_stop = 1;
-	pthread_cond_signal(&state->cond);
+	pthread_cond_broadcast(&state->cond);
 }
 
 void service_on(car_shared_mem *state) {
@@ -165,24 +165,24 @@ void service_on(car_shared_mem *state) {
 		state->emergency_mode = 0;
 		pthread_cond_broadcast(&state->cond);
 	} else {
-		pthread_cond_signal(&state->cond);
+		pthread_cond_broadcast(&state->cond);
 	}
 }
 
 void service_off(car_shared_mem *state) {
 	state->individual_service_mode = 0;
-	pthread_cond_signal(&state->cond);
+	pthread_cond_broadcast(&state->cond);
 }
 
 int up(car_shared_mem *state) {
 	int result = increment_floor(state->current_floor, state->destination_floor);;
-	pthread_cond_signal(&state->cond);
+	pthread_cond_broadcast(&state->cond);
 	return result;
 }
 
 int down(car_shared_mem *state) {
 	int result = decrement_floor(state->current_floor, state->destination_floor);;
-	pthread_cond_signal(&state->cond);
+	pthread_cond_broadcast(&state->cond);
 	return result;
 }
 

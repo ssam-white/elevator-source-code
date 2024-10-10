@@ -13,3 +13,6 @@ programming language.
 ## Keep in mind
 1. decide on using pthread_cond_signal or
    pthread_cond_broadcast.
+
+
+   dont forget to change the service off function

@@ -32,8 +32,6 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	pthread_mutex_lock(&icontroller.state->mutex);
-
 	switch (handle_operation(&icontroller)) {
 		case I_SERVICE_MODE_ERROR:
 			printf("Operation only allowed in service mode.\n");
@@ -50,8 +48,6 @@ int main(int argc, char *argv[]) {
 		default:
 			break;
 	}
-
-	pthread_mutex_unlock(&icontroller.state->mutex);
 
 	icontroller_deinit(&icontroller);
 
@@ -104,16 +100,8 @@ bool icontroller_connect(icontroller_t *icontroller) {
 	return true;
 }
 
-bool op_is(icontroller_t *icontroller, const char *op) {
-	return strcmp(icontroller->operation, op) == 0;
-}
-
-bool status_is(car_shared_mem *state, const char *status) {
-	return strcmp(state->status, status) == 0;
-}
-
 int can_car_move(car_shared_mem *state) {
-	if (state->individual_service_mode == 0) {
+	if (service_mode_is(state, 0)) {
 		return I_SERVICE_MODE_ERROR;
 	} else if (status_is(state, "Between")) {
 		return I_BETWEEN_FLOORS_ERROR;
@@ -127,15 +115,15 @@ int handle_operation(icontroller_t *icontroller) {
 	car_shared_mem *state = icontroller->state;
 
 	if (op_is(icontroller, "open")) {
-		open_button_on(state);
-	}	 else if(op_is(icontroller, "close")) {
-		close_button_on(state);
+		set_open_button(state, 1);
+	} else if(op_is(icontroller, "close")) {
+		set_close_button(state, 1);
 	} else if(op_is(icontroller, "stop")) {
-		stop_car(state);
+		set_emergency_stop(state, 1);
 	} else if (op_is(icontroller, "service_on")) {
-		service_on(state);
+		set_service_mode(state, 1);
 	} else if (op_is(icontroller, "service_off")) {
-		service_off(state);
+		set_service_mode(state, 0);
 	} else if (op_is(icontroller, "up") || op_is(icontroller, "down")) {
 		return  can_car_move(state) < 0 ? can_car_move(state) :
 			op_is(icontroller, "up") ? up(state) : down(state);
@@ -145,85 +133,70 @@ int handle_operation(icontroller_t *icontroller) {
 	return I_SUCCESS;
 }
 
-void open_button_on(car_shared_mem *state) {
-	state->open_button = 1;
-	pthread_cond_broadcast(&state->cond);
-}
-
-void close_button_on(car_shared_mem *state) {
-	state->close_button = 1;
-	pthread_cond_broadcast(&state->cond);
-}
-
-void stop_car(car_shared_mem *state) {
-	state->emergency_stop = 1;
-	pthread_cond_broadcast(&state->cond);
-}
-
-void service_on(car_shared_mem *state) {
-	state->individual_service_mode = 1;
-	if (state->emergency_mode == 1) {
-		state->emergency_mode = 0;
-		pthread_cond_broadcast(&state->cond);
-	} else {
-		pthread_cond_broadcast(&state->cond);
-	}
-}
-
-void service_off(car_shared_mem *state) {
-	state->individual_service_mode = 0;
-	pthread_cond_broadcast(&state->cond);
-}
-
 int up(car_shared_mem *state) {
-	int result = increment_floor(state->current_floor, state->destination_floor);;
-	pthread_cond_broadcast(&state->cond);
+	int result = increment_floor(state);;
 	return result;
 }
 
 int down(car_shared_mem *state) {
-	int result = decrement_floor(state->current_floor, state->destination_floor);;
-	pthread_cond_broadcast(&state->cond);
+	int result = decrement_floor(state);;
 	return result;
 }
 
-int decrement_floor(char *current_floor, char *destination_floor) {
+int decrement_floor(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
 	int floor_number;
 
-	if (current_floor[0] == 'B') {
-		floor_number = atoi(current_floor + 1);
+	if (state->current_floor[0] == 'B') {
+		floor_number = atoi(state->current_floor + 1);
 		if (floor_number == 99) {
 			return I_MIN_FLOOR_ERROR;
 		} else {
-			sprintf(destination_floor, "B%d", floor_number + 1);
+			sprintf(state->destination_floor, "B%d", floor_number + 1);
+			pthread_cond_broadcast(&state->cond);
 		}
 	} else {
-		floor_number = atoi(current_floor);
+		floor_number = atoi(state->current_floor);
 		if (floor_number == 1) {
-			strcpy(destination_floor, "B1");
+			strcpy(state->destination_floor, "B1");
 		} else {
-			sprintf(destination_floor, "%d", floor_number - 1);
+			sprintf(state->destination_floor, "%d", floor_number - 1);
 		}
 	}
+	pthread_mutex_unlock(&state->mutex);
 	return 0;
 }
 
-int increment_floor(char *current_floor, char *destination_floor) {
+int increment_floor(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
+
 	int floor_number;
-	if (current_floor[0] == 'B') {
-		floor_number = atoi(current_floor + 1);
+	if (state->current_floor[0] == 'B') {
+		floor_number = atoi(state->current_floor + 1);
 		if (floor_number == 1) {
-			strcpy(destination_floor, "1");
+			strcpy(state->destination_floor, "1");
 		} else {
-			sprintf(destination_floor, "B%d", floor_number - 1);
+			sprintf(state->destination_floor, "B%d", floor_number - 1);
 		}
+		pthread_cond_broadcast(&state->cond);
 	} else {
-		floor_number = atoi(current_floor);
+		floor_number = atoi(state->current_floor);
 		if (floor_number == 999) {
 			return I_MAX_FLOOR_ERROR;
 		} else {
-			sprintf(destination_floor, "%d", floor_number + 1);
+			sprintf(state->destination_floor, "%d", floor_number + 1);
+			pthread_cond_broadcast(&state->cond);
 		}
 	}
-	return 0;
+
+	pthread_mutex_unlock(&state->mutex);
+
+	return I_SUCCESS;
+}
+
+bool op_is(icontroller_t *icontroller, const char *op) {
+	pthread_mutex_lock(&icontroller->state->mutex);
+	bool result = strcmp(icontroller->operation, op) == 0;
+	pthread_mutex_unlock(&icontroller->state->mutex);
+	return result;
 }

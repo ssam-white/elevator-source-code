@@ -11,7 +11,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "global.h"
 #include "posix.h"
 #include "car.h"
 
@@ -36,13 +35,19 @@ pid_t start_car(car_t *car) {
 	pid_t p;
 	p = fork();
 	if (p == 0) {
+		while (1) {
 		pthread_mutex_lock(&car->state->mutex);
 		pthread_cond_wait(&car->state->cond, &car->state->mutex);
 		pthread_mutex_unlock(&car->state->mutex);
 
 		if (open_button_is(car->state, 1)) {
-			cycle_open(car);
-		} 
+			set_open_button(car->state, 0);
+			set_status(car->state, "Opening");
+			usleep(car->delay);
+		} else {
+			set_status(car->state, "Closed");
+		}
+		}
 	}
 	return p;
 }
@@ -52,7 +57,7 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	car->shm_name = get_shm_name(car->name);
 	car->lowest_floor = lowest_floor;
 	car->highest_floor = highest_floor;
-	car->delay = atoi(delay) * 1000;
+	car->delay = (uint8_t) atoi(delay) * 1000;
 
 	// create the shared memory object for the cars state
 	if (!create_shared_mem(car, car->name)) {
@@ -65,7 +70,7 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	strcpy(car->state->destination_floor, car->lowest_floor);
 }
 
-bool create_shared_mem( car_t* car, const char* name ) {
+bool create_shared_mem( car_t* car, char* name ) {
     // Remove any previous instance of the shared memory object, if it exists.
 	shm_unlink(name);
 
@@ -99,23 +104,23 @@ bool create_shared_mem( car_t* car, const char* name ) {
     return true;
 }
 
-void print_car(car_t* car) {
-	printf("car_t: { name: %s, shm_name: %s, lowest_floor: %s, highest_floor: %s, delay: %d }\n",
-		car->name,
-		car->shm_name,
-		car->lowest_floor,
-		car->highest_floor,
-		car->delay
-	);
-}
-
-
 void cycle_open(car_t *car) {
 	set_open_button(car->state, 0);
 
-	char *statuses[4] = {"Opening", "Open", "Closing", "Closed"};
+	const char *statuses[4] = {"Opening", "Open", "Closing", "Closed"};
 	for (size_t i = 0; i < 4; i++) {
 		set_status(car->state, statuses[i]);
 		usleep(car->delay);
 	}
+}
+
+void close_doors(car_t *car) {
+	pthread_mutex_lock(&car->state->mutex);
+	// car->state->close_button = 0;
+	strcpy(car->state->status, "Closing");
+	pthread_cond_broadcast(&car->state->cond);
+	pthread_mutex_unlock(&car->state->mutex);
+
+	usleep(car->delay);
+	set_status(car->state, "Closed");
 }

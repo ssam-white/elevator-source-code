@@ -1,7 +1,5 @@
 #pragma once
 
-#include "global.h"
-
 typedef enum {
 	I_SUCCESS = 0,
 	I_SERVICE_MODE_ERROR = -1,

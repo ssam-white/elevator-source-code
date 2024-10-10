@@ -144,52 +144,43 @@ int down(car_shared_mem *state) {
 }
 
 int decrement_floor(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
 	int floor_number;
-
 	if (state->current_floor[0] == 'B') {
 		floor_number = atoi(state->current_floor + 1);
 		if (floor_number == 99) {
 			return I_MIN_FLOOR_ERROR;
 		} else {
-			sprintf(state->destination_floor, "B%d", floor_number + 1);
-			pthread_cond_broadcast(&state->cond);
+			set_string(state, state->destination_floor, "B%d", floor_number + 1);
 		}
 	} else {
 		floor_number = atoi(state->current_floor);
 		if (floor_number == 1) {
-			strcpy(state->destination_floor, "B1");
+			set_string(state, state->destination_floor, "B1");
 		} else {
-			sprintf(state->destination_floor, "%d", floor_number - 1);
+			set_string(state, state->destination_floor, "%d", floor_number - 1);
 		}
 	}
-	pthread_mutex_unlock(&state->mutex);
 	return 0;
 }
 
 int increment_floor(car_shared_mem *state) {
-	pthread_mutex_lock(&state->mutex);
-
 	int floor_number;
 	if (state->current_floor[0] == 'B') {
 		floor_number = atoi(state->current_floor + 1);
 		if (floor_number == 1) {
-			strcpy(state->destination_floor, "1");
+			set_string(state, state->destination_floor, "1");
 		} else {
-			sprintf(state->destination_floor, "B%d", floor_number - 1);
+			set_string(state, state->destination_floor, "B%d", floor_number - 1);
 		}
-		pthread_cond_broadcast(&state->cond);
 	} else {
 		floor_number = atoi(state->current_floor);
 		if (floor_number == 999) {
 			return I_MAX_FLOOR_ERROR;
 		} else {
-			sprintf(state->destination_floor, "%d", floor_number + 1);
-			pthread_cond_broadcast(&state->cond);
+			set_string(state, state->destination_floor, "%d", floor_number + 1);
 		}
 	}
 
-	pthread_mutex_unlock(&state->mutex);
 
 	return I_SUCCESS;
 }

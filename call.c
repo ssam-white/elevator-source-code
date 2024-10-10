@@ -1,11 +1,12 @@
 #include <stdlib.h>
+#include <ctype.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "call.h"
-#include "global.h"
+#include "posix.h"
 #include "tcpip.h"
 
 int main(int argc, char *argv[]) {
@@ -85,6 +86,36 @@ bool call_pad_connect(call_pad_t *call_pad) {
 			 sizeof(call_pad->server_addr)) < 0) {
 		close(call_pad->sock);
 		return false;
+	}
+
+	return true;
+}
+
+bool is_valid_floor(char *floor) {
+	size_t len = strlen(floor);
+
+	if (len > 3) {
+		return false;
+	}
+
+	if (floor[0] == 'B') {
+		if (len == 1) {
+			return false;
+		}
+
+		for (size_t i = 1; i < len; i++) {
+			if (!isdigit((unsigned char) floor[i])) {
+				return false;
+			}
+		}
+		return true;
+
+	}
+
+	for (size_t i = 0; i < len; i++) {
+		if (!isdigit((unsigned char) floor[i])) {
+			return false;
+		}
 	}
 
 	return true;

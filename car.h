@@ -1,7 +1,7 @@
+#pragma once
+
 #include <pthread.h>
 #include <stdint.h>
-
-#include "global.h"
 
 typedef struct {
 	char *name;
@@ -15,7 +15,8 @@ typedef struct {
 
 void car_init(car_t*, char*, char*, char*, char*);
 pid_t start_car(car_t *);
-bool create_shared_mem( car_t*, const char*);
+bool create_shared_mem( car_t *, char *);
 void print_car(car_t*);
 
 void cycle_open(car_t *);
+void close_doors(car_t *);

@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "global.h"
+#include "posix.h"
 #include "car.h"
 
 int main(int argc, char *argv[]) {
@@ -39,7 +40,7 @@ pid_t start_car(car_t *car) {
 		pthread_cond_wait(&car->state->cond, &car->state->mutex);
 		pthread_mutex_unlock(&car->state->mutex);
 
-		if (car->state->open_button == 1) {
+		if (open_button_is(car->state, 1)) {
 			cycle_open(car);
 		} 
 	}
@@ -110,17 +111,11 @@ void print_car(car_t* car) {
 
 
 void cycle_open(car_t *car) {
-	pthread_mutex_lock(&car->state->mutex);
-	car->state->open_button = 0;
-	pthread_cond_broadcast(&car->state->cond);
-	pthread_mutex_unlock(&car->state->mutex);
+	set_open_button(car->state, 0);
 
-	char *states[4] = {"Opening", "Open", "Closing", "Closed"};
+	char *statuses[4] = {"Opening", "Open", "Closing", "Closed"};
 	for (size_t i = 0; i < 4; i++) {
-		pthread_mutex_lock(&car->state->mutex);
-		strcpy(car->state->status, states[i]);
-		pthread_cond_broadcast(&car->state->cond);
-		pthread_mutex_unlock(&car->state->mutex);
+		set_status(car->state, statuses[i]);
 		usleep(car->delay);
 	}
 }

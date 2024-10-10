@@ -14,11 +14,11 @@ all: $(EXE)
 call: call.c global.c tcpip.c
 	$(CC) -o call call.c global.c tcpip.c $(CFLAGS)
 
-internal: internal.c global.c
-	$(CC) -o internal internal.c global.c $(CFLAGS)
+internal: internal.c global.c posix.c
+	$(CC) -o internal internal.c posix.c global.c $(CFLAGS)
 
-car: car.c global.c
-	$(CC) -o car car.c global.c $(CFLAGS)
+car: car.c global.c posix.c
+	$(CC) -o car car.c posix.c global.c $(CFLAGS)
 
 # Clean up object files and executables
 clean:

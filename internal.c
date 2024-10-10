@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "posix.h"
 #include "internal.h"
 
 int main(int argc, char *argv[]) {

@@ -81,6 +81,7 @@ void *handle_doors(void *arg) {
 
 void *handle_level(void *arg) {
 	car_t *car = (car_t *) arg;
+
 	while (1) {
 		pthread_mutex_lock(&car->state->mutex);
 		pthread_cond_wait(&car->state->cond, &car->state->mutex);

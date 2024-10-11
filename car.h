@@ -20,8 +20,8 @@ typedef struct {
 void car_init(car_t*, char*, char*, char*, char*);
 void car_deinit(car_t *);
 pid_t start_car(car_t *);
-void *handle_car(void *);
-void handle_level(car_t *);
+void *handle_doors(void *);
+void *handle_level(void *);
 bool create_shared_mem( car_t *, char *);
 
 void open_doors(car_t *);
@@ -34,3 +34,5 @@ int usleep_cond(car_t *);
 void handle_sigint(int);
 
 int floor_to_int(char *);
+int check_destination(car_t *);
+bool new_destination(car_shared_mem *);

@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 
-	pthread_create(&car.door_thread, &attr, handle_car, &car);
+	pthread_create(&car.door_thread, &attr, handle_doors, &car);
 	pthread_create(&car.level_thread, &attr, handle_level, &car);
 
 	while (!shutdown_requested);
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void *handle_car(void *arg) {
+void *handle_doors(void *arg) {
 	car_t *car = (car_t *) arg;
 
 	while (1) {
@@ -79,36 +79,24 @@ void *handle_car(void *arg) {
 
 }
 
-void handle_level(car_t *car) {
+void *handle_level(void *arg) {
+	car_t *car = (car_t *) arg;
 	while (1) {
 		pthread_mutex_lock(&car->state->mutex);
 		pthread_cond_wait(&car->state->cond, &car->state->mutex);
 		pthread_mutex_unlock(&car->state->mutex);
 
-		pthread_mutex_lock(&car->state->mutex);
-		if (strcmp(car->state->current_floor, car->state->destination_floor) != 0) {
-			int destination_floor = floor_to_int(car->state->destination_floor);
-			int lowest_floor = floor_to_int(car->lowest_floor);
-			int highest_floor = floor_to_int(car->highest_floor);
-			if (destination_floor >= lowest_floor && destination_floor <= highest_floor) {
-				strcpy(car->state->status, "Between");
-				pthread_cond_broadcast(&car->state->cond);
-				pthread_mutex_unlock(&car->state->mutex);
+		if (new_destination(car->state) && check_destination(car) == 0) {
+			set_status(car->state, "Between");
+			usleep(car->delay);
 
-				usleep(car->delay);
-
-				pthread_mutex_lock(&car->state->mutex);
-				strcpy(car->state->status, "Closed");
-				strcpy(car->state->current_floor, car->state->destination_floor);
-				pthread_cond_broadcast(&car->state->cond);
-				pthread_mutex_unlock(&car->state->mutex);
-			} else {
-				strcpy(car->state->destination_floor, car->state->current_floor);
-				pthread_cond_broadcast(&car->state->cond);
-				pthread_mutex_unlock(&car->state->mutex);
-			}
-		} else {
+			pthread_mutex_lock(&car->state->mutex);
+			strcpy(car->state->status, "Closed");
+			strcpy(car->state->current_floor, car->state->destination_floor);
+			pthread_cond_broadcast(&car->state->cond);
 			pthread_mutex_unlock(&car->state->mutex);
+		} else {
+			set_string(car->state, car->state->destination_floor, car->state->current_floor);
 		}
 		pthread_testcancel();
 	}
@@ -195,7 +183,7 @@ void open_doors(car_t *car) {
 	if (status_is(car->state, "Open")) usleep_cond(car);
 	do {
 		set_status(car->state, next_in_cycle(car->state));
-		if (usleep_cond(car) == 0) break;
+		usleep(car->delay);
 	} while (!status_is(car->state, "Open"));
 }
 
@@ -251,4 +239,27 @@ int floor_to_int(char *floor) {
 		floor_number = atoi(temp_floor) - 1;
 	}
 	return floor_number;
+}
+
+int check_destination (car_t *car) {
+	pthread_mutex_lock(&car->state->mutex);
+	int floor_number = floor_to_int(car->state->destination_floor);
+	int lowest_floor_number = floor_to_int(car->lowest_floor);
+	int highest_floor_number = floor_to_int(car->highest_floor);
+	pthread_mutex_unlock(&car->state->mutex);
+
+	if (floor_number < lowest_floor_number) {
+		return -1;
+	} else if (floor_number > highest_floor_number) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+bool new_destination(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
+	bool result = strcmp(state->destination_floor, state->current_floor);
+	pthread_mutex_unlock(&state->mutex);
+	return result;
 }

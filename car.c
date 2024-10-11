@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <signal.h>
 #include <time.h>
 #include <string.h>
 #include <semaphore.h>
@@ -15,6 +16,8 @@
 #include "posix.h"
 #include "car.h"
 
+volatile sig_atomic_t shutdown_requested = 0;
+
 int main(int argc, char *argv[]) {
 	// Check if the correct number of command line arguments was given
 	if (argc != 5) {
@@ -22,40 +25,93 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	signal(SIGINT, handle_sigint);
+
+
+
 	car_t car;
 	car_init(&car, argv[1], argv[2], argv[3], argv[4]);
 
-	pid_t car_thread = start_car(&car);
 
-	wait(&car_thread);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+	pthread_create(&car.door_thread, &attr, handle_car, &car);
+	pthread_create(&car.level_thread, &attr, handle_level, &car);
+
+	while (!shutdown_requested);
+
+	pthread_cancel(car.door_thread);
+	pthread_cancel(car.level_thread);
+
+	pthread_join(car.door_thread, NULL);
+	pthread_join(car.level_thread, NULL);
+
+	car_deinit(&car);
 
 	return 0;
 }
 
-pid_t start_car(car_t *car) {
-	pid_t p;
-	p = fork();
-	if (p == 0) {
+void *handle_car(void *arg) {
+	car_t *car = (car_t *) arg;
+
+	while (1) {
 		pthread_mutex_lock(&car->state->mutex);
 		pthread_cond_wait(&car->state->cond, &car->state->mutex);
 		pthread_mutex_unlock(&car->state->mutex);
 
 		if (open_button_is(car->state, 1)) {
 			set_open_button(car->state, 0);
-			do {
-				set_status(car->state, next_in_open_cycle(car->state));
-				if (usleep_cond(car) == 0) break;
-			} while (!status_is(car->state, "Closed"));
-		}
-		if (close_button_is(car->state, 1)) {
-			set_close_button(car->state, 0);
-			while (!status_is(car->state, "Closed")) {
-				set_status(car->state, next_in_open_cycle(car->state));
-				if (usleep_cond(car) == 0) break;
+			open_doors(car);
+			if (service_mode_is(car->state, 0)) {
+				close_doors(car);
 			}
 		}
+
+
+		if (close_button_is(car->state, 1)) {
+			set_close_button(car->state, 0);
+			close_doors(car);
+		}
+
+		pthread_testcancel();
 	}
-	return p;
+
+}
+
+void handle_level(car_t *car) {
+	while (1) {
+		pthread_mutex_lock(&car->state->mutex);
+		pthread_cond_wait(&car->state->cond, &car->state->mutex);
+		pthread_mutex_unlock(&car->state->mutex);
+
+		pthread_mutex_lock(&car->state->mutex);
+		if (strcmp(car->state->current_floor, car->state->destination_floor) != 0) {
+			int destination_floor = floor_to_int(car->state->destination_floor);
+			int lowest_floor = floor_to_int(car->lowest_floor);
+			int highest_floor = floor_to_int(car->highest_floor);
+			if (destination_floor >= lowest_floor && destination_floor <= highest_floor) {
+				strcpy(car->state->status, "Between");
+				pthread_cond_broadcast(&car->state->cond);
+				pthread_mutex_unlock(&car->state->mutex);
+
+				usleep(car->delay);
+
+				pthread_mutex_lock(&car->state->mutex);
+				strcpy(car->state->status, "Closed");
+				strcpy(car->state->current_floor, car->state->destination_floor);
+				pthread_cond_broadcast(&car->state->cond);
+				pthread_mutex_unlock(&car->state->mutex);
+			} else {
+				strcpy(car->state->destination_floor, car->state->current_floor);
+				pthread_cond_broadcast(&car->state->cond);
+				pthread_mutex_unlock(&car->state->mutex);
+			}
+		} else {
+			pthread_mutex_unlock(&car->state->mutex);
+		}
+		pthread_testcancel();
+	}
 }
 
 void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, char* delay) {
@@ -74,6 +130,18 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	init_shm(car->state);
 	strcpy(car->state->current_floor, car->lowest_floor);
 	strcpy(car->state->destination_floor, car->lowest_floor);
+}
+
+void car_deinit(car_t *car) {
+	munmap(car->state, sizeof(car_shared_mem));
+	shm_unlink(car->shm_name);
+	car->state = NULL;
+
+	car->name = NULL;
+	free(car->shm_name);
+	car->highest_floor = NULL;
+	car->lowest_floor = NULL;
+	car->delay = 0;	
 }
 
 bool create_shared_mem( car_t* car, char* name ) {
@@ -110,28 +178,7 @@ bool create_shared_mem( car_t* car, char* name ) {
     return true;
 }
 
-void cycle_open(car_t *car) {
-	set_open_button(car->state, 0);
-
-	const char *statuses[4] = {"Opening", "Open", "Closing", "Closed"};
-	for (size_t i = 0; i < 4; i++) {
-		set_status(car->state, statuses[i]);
-		usleep(car->delay);
-	}
-}
-
-void close_doors(car_t *car) {
-	pthread_mutex_lock(&car->state->mutex);
-	// car->state->close_button = 0;
-	strcpy(car->state->status, "Closing");
-	pthread_cond_broadcast(&car->state->cond);
-	pthread_mutex_unlock(&car->state->mutex);
-
-	usleep(car->delay);
-	set_status(car->state, "Closed");
-}
-
-const char *next_in_open_cycle(car_shared_mem *state) {
+const char *next_in_cycle(car_shared_mem *state) {
 	if (status_is(state, "Closed")) {
 		return "Opening";
 	} else if (status_is(state, "Opening")) {
@@ -142,6 +189,22 @@ const char *next_in_open_cycle(car_shared_mem *state) {
 		return "Closed";
 	}
 	return NULL;
+}
+
+void open_doors(car_t *car) {
+	if (status_is(car->state, "Open")) usleep_cond(car);
+	do {
+		set_status(car->state, next_in_cycle(car->state));
+		if (usleep_cond(car) == 0) break;
+	} while (!status_is(car->state, "Open"));
+}
+
+void close_doors(car_t *car) {
+	// if (status_is(car->state, "Opening")) set_status(car->state, "Closing");
+	while (!status_is(car->state, "Closed")) {
+		set_status(car->state, next_in_cycle(car->state));
+		usleep(car->delay);
+	}
 }
 
 const char *next_in_close_cycle(car_shared_mem *state) {
@@ -165,4 +228,27 @@ int usleep_cond(car_t *car) {
 	pthread_mutex_unlock(&car->state->mutex);
 
 	return result;
+}
+
+void handle_sigint(int sig) {
+	switch (sig) {
+		case SIGINT:
+			shutdown_requested = 1;
+			break;
+		default:
+			break;
+	}
+}
+
+int floor_to_int(char *floor) {
+	int floor_number;
+	char temp_floor[4];
+	strcpy(temp_floor, floor);
+	if (temp_floor[0] == 'B') {
+		temp_floor[0] = '-';
+		floor_number = atoi(temp_floor);
+	} else {
+		floor_number = atoi(temp_floor) - 1;
+	}
+	return floor_number;
 }

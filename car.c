@@ -180,7 +180,7 @@ const char *next_in_cycle(car_shared_mem *state) {
 }
 
 void open_doors(car_t *car) {
-	if (status_is(car->state, "Open")) usleep_cond(car);
+	if (status_is(car->state, "Open")) usleep(car->delay);
 	do {
 		set_status(car->state, next_in_cycle(car->state));
 		usleep(car->delay);

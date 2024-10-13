@@ -18,6 +18,7 @@ typedef struct {
 	pthread_t door_thread;
 	pthread_t level_thread;
 	pthread_t receiver_thread;
+	bool connected_to_controller;
 	car_shared_mem *state;
 } car_t;
 
@@ -39,7 +40,7 @@ int usleep_cond(car_t *);
 void handle_sigint(int);
 
 int floor_to_int(char *);
-int check_destination(car_t *);
-int new_destination(car_shared_mem *);
+int bounds_check_floor(car_t *car, char *);
+int cdcmp_floors(car_shared_mem *);
 bool connect_to_controller(car_t *);
 void signal_controller(car_t *);

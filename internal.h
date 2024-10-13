@@ -22,8 +22,6 @@ void icontroller_init(icontroller_t *, const char *, const char *);
 void icontroller_deinit(icontroller_t *);
 bool icontroller_connect(icontroller_t *);
 void print_state(car_shared_mem *);
-int decrement_floor(car_shared_mem *);
-int increment_floor(car_shared_mem *);
 int can_car_move(car_shared_mem *);
 
 int handle_operation(icontroller_t *);

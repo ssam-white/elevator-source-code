@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "posix.h"
+#include "global.h"
 #include "internal.h"
 
 int main(int argc, char *argv[]) {
@@ -141,48 +142,6 @@ int up(car_shared_mem *state) {
 int down(car_shared_mem *state) {
 	int result = decrement_floor(state);;
 	return result;
-}
-
-int decrement_floor(car_shared_mem *state) {
-	int floor_number;
-	if (state->current_floor[0] == 'B') {
-		floor_number = atoi(state->current_floor + 1);
-		if (floor_number == 99) {
-			return I_MIN_FLOOR_ERROR;
-		} else {
-			set_string(state, state->destination_floor, "B%d", floor_number + 1);
-		}
-	} else {
-		floor_number = atoi(state->current_floor);
-		if (floor_number == 1) {
-			set_string(state, state->destination_floor, "B1");
-		} else {
-			set_string(state, state->destination_floor, "%d", floor_number - 1);
-		}
-	}
-	return 0;
-}
-
-int increment_floor(car_shared_mem *state) {
-	int floor_number;
-	if (state->current_floor[0] == 'B') {
-		floor_number = atoi(state->current_floor + 1);
-		if (floor_number == 1) {
-			set_string(state, state->destination_floor, "1");
-		} else {
-			set_string(state, state->destination_floor, "B%d", floor_number - 1);
-		}
-	} else {
-		floor_number = atoi(state->current_floor);
-		if (floor_number == 999) {
-			return I_MAX_FLOOR_ERROR;
-		} else {
-			set_string(state, state->destination_floor, "%d", floor_number + 1);
-		}
-	}
-
-
-	return I_SUCCESS;
 }
 
 bool op_is(icontroller_t *icontroller, const char *op) {

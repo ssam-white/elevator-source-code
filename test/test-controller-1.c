@@ -6,7 +6,7 @@
 #define MILLISECOND 1000 // 1ms
 
 pid_t controller(void);
-int connect_to_controller(void);
+int &connect_to_controller(void);
 void test_call(const char *, const char *);
 void test_recv(int, const char *);
 void cleanup(pid_t);

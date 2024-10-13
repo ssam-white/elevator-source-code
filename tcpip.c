@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -23,10 +25,22 @@ void send_looped(int fd, const void *buf, size_t sz) {
 	}
 }
 
-void send_message(int fd, const char *buf) {
-	uint32_t len = htonl((uint32_t) strlen(buf));
-	send_looped(fd, &len, sizeof(len));
-	send_looped(fd, buf, strlen(buf));
+void send_message(int fd, const char *buf, ...) {
+    va_list args;
+    va_start(args, buf);
+
+    char message[1024];
+    int message_len = vsnprintf(message, sizeof(message), buf, args);
+    va_end(args);
+
+    if (message_len < 0 || message_len >= sizeof(message)) {
+        return;
+    }
+
+    uint32_t len = htonl((uint32_t) message_len);
+    send_looped(fd, &len, sizeof(len));
+
+    send_looped(fd, message, message_len);
 }
 
 void recv_looped(int fd, void *buf, size_t sz) {
@@ -55,3 +69,17 @@ char *receive_msg(int fd) {
 	return buf;
 }
 
+// int connect_to_controller(int *fd, struct sockaddr_in *sockaddr) {
+// 	*fd = socket(AF_INET, SOCK_STREAM, 0);
+//
+// 	memset(sockaddr, 0, sizeof(*sockaddr));
+// 	sockaddr->sin_family = AF_INET;
+// 	sockaddr->sin_port = htons(3000);
+// 	sockaddr->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+// 	if (connect(*fd, (const struct sockaddr *) sockaddr, sizeof(*sockaddr)) == -1)
+// 	{
+// 		perror("connect()");
+// 		exit(1);
+// 	}
+// 	return *fd;
+// }

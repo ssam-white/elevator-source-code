@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unistd.h>
-#include <arpa/inet.h>
+#include <arpa/inet.herveraddr_in
 #include <stdbool.h>
 
 typedef struct {

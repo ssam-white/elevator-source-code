@@ -14,6 +14,8 @@
 #include <unistd.h>
 
 #include "posix.h"
+#include "tcpip.h"
+#include "global.h"
 #include "car.h"
 
 volatile sig_atomic_t shutdown_requested = 0;
@@ -27,25 +29,47 @@ int main(int argc, char *argv[]) {
 
 	signal(SIGINT, handle_sigint);
 
-
-
 	car_t car;
 	car_init(&car, argv[1], argv[2], argv[3], argv[4]);
-
 
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 
 	pthread_create(&car.door_thread, &attr, handle_doors, &car);
 	pthread_create(&car.level_thread, &attr, handle_level, &car);
+	pthread_create(&car.receiver_thread, &attr, handle_receiver, &car);
 
-	while (!shutdown_requested);
+	if (!connect_to_controller(&car)) {
+		perror("failed to connect");
+		return 1;
+	}
+
+	send_message(car.server_fd, "CAR %s %s %s", car.name, car.lowest_floor, car.highest_floor);
+	signal_controller(&car);
+	while (!shutdown_requested) {
+		car_shared_mem state = *car.state;
+
+		// usleep_cond(&car);
+		pthread_mutex_lock(&car.state->mutex);
+		pthread_cond_wait(&car.state->cond, &car.state->mutex);
+		pthread_mutex_unlock(&car.state->mutex);
+
+		if (
+			strcmp(state.status, car.state->status) != 0 ||
+			strcmp(state.current_floor, car.state->current_floor) != 0 ||
+			strcmp(car.state->destination_floor, car.state->destination_floor) != 0
+		) {
+			signal_controller(&car);
+		}
+	}
 
 	pthread_cancel(car.door_thread);
 	pthread_cancel(car.level_thread);
+	pthread_cancel(car.receiver_thread);
 
 	pthread_join(car.door_thread, NULL);
 	pthread_join(car.level_thread, NULL);
+	pthread_join(car.receiver_thread, NULL);
 
 	car_deinit(&car);
 
@@ -68,7 +92,6 @@ void *handle_doors(void *arg) {
 			}
 		}
 
-
 		if (close_button_is(car->state, 1)) {
 			set_close_button(car->state, 0);
 			close_doors(car);
@@ -87,18 +110,27 @@ void *handle_level(void *arg) {
 		pthread_cond_wait(&car->state->cond, &car->state->mutex);
 		pthread_mutex_unlock(&car->state->mutex);
 
-		if (new_destination(car->state) && check_destination(car) == 0) {
+		int destination = new_destination(car->state);
+		if (destination != 0 && check_destination(car) == 0) {
 			set_status(car->state, "Between");
-			usleep(car->delay);
+			while (new_destination(car->state) != 0) {
+				usleep(car->delay);
+				if (new_destination(car->state) > 0) {
+					increment_floor(car->state, car->state->current_floor);
+				} else {
+					decrement_floor(car->state, car->state->current_floor);
+				}
+			}
+		} 
 
-			pthread_mutex_lock(&car->state->mutex);
-			strcpy(car->state->status, "Closed");
-			strcpy(car->state->current_floor, car->state->destination_floor);
-			pthread_cond_broadcast(&car->state->cond);
-			pthread_mutex_unlock(&car->state->mutex);
-		} else {
-			set_string(car->state, car->state->destination_floor, car->state->current_floor);
-		}
+		set_status(car->state, "Opening");
+		usleep(car->delay);
+		set_status(car->state, "Open");
+		usleep(car->delay);
+		set_status(car->state, "Closing");
+		usleep(car->delay);
+		set_status(car->state, "Closed");
+
 		pthread_testcancel();
 	}
 }
@@ -258,9 +290,62 @@ int check_destination (car_t *car) {
 	}
 }
 
-bool new_destination(car_shared_mem *state) {
+int new_destination(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
-	bool result = strcmp(state->destination_floor, state->current_floor);
+	int result = strcmp(state->destination_floor, state->current_floor);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
+
+bool connect_to_controller(car_t *car) {
+	// create the socket
+	if ((car->server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("failed to create socked");
+		return false;
+	}
+
+	// set the sockets address
+	car->server_addr.sin_family = AF_INET;
+	car->server_addr.sin_port = htons(PORT);
+	if (inet_pton(AF_INET, URL, &car->server_addr.sin_addr) <= 0) {
+		close(car->server_fd);
+		perror("Failed at this one i dont know");
+		return false;
+	}
+
+	// connect to the server
+	if (connect(car->server_fd, (struct sockaddr *)&car->server_addr,
+			 sizeof(car->server_addr)) < 0) {
+		close(car->server_fd);
+		perror("failed to connect to server");
+		return false;
+	}
+
+	return true;
+}
+
+void *handle_receiver(void *arg) {
+	car_t *car = (car_t *) arg;
+
+	while (1) {
+		char *message = receive_msg(car->server_fd);		
+		if (strstr(message, "FLOOR")) {
+			pthread_mutex_lock(&car->state->mutex);
+			int is_same_floor = strcmp(message + 6, car->state->destination_floor);
+			pthread_mutex_unlock(&car->state->mutex);
+
+			// if (is_same_floor == 0) {
+				// open_doors(car);
+				// close_doors(car);
+			// } else {
+				set_string(car->state, car->state->destination_floor, message + 6);
+			// }
+		}
+		pthread_testcancel();
+	}
+}
+
+void signal_controller(car_t *car) {
+	send_message(car->server_fd, "STATUS %s %s %s", car->state->status, car->state->current_floor, car->state->destination_floor);
+}
+

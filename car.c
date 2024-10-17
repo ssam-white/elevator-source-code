@@ -178,7 +178,7 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	car->connected_to_controller = false;
 
 	// create the shared memory object for the cars state
-	if (!create_shared_mem(car, car->name)) {
+	if (!create_shared_mem(car)) {
 		perror("Failed to create shared object");
 		exit(1);
 	}
@@ -200,12 +200,9 @@ void car_deinit(car_t *car) {
 	car->delay = 0;	
 }
 
-bool create_shared_mem( car_t* car, char* name ) {
+bool create_shared_mem( car_t* car ) {
     // Remove any previous instance of the shared memory object, if it exists.
-	shm_unlink(name);
-
-    // Assign car name to car->name.
-	car->name = name;
+	shm_unlink(car->shm_name);
 
     // Create the shared memory object, allowing read-write access by all users,
     // and saving the resulting file descriptor in car->fd. If creation failed,

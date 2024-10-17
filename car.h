@@ -30,7 +30,7 @@ void *handle_level(void *);
 void *handle_receiver(void *);
 void *handle_connection(void *);
 
-bool create_shared_mem( car_t *, char *);
+bool create_shared_mem( car_t *);
 
 void open_doors(car_t *);
 void close_doors(car_t *);

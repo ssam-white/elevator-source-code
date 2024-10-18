@@ -1,4 +1,8 @@
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -34,6 +38,35 @@ void init_shm(car_shared_mem *s) {
 	pthread_condattr_destroy(&condattr);
 
 	reset_shm(s);
+}
+
+bool create_shared_mem(car_shared_mem **shm, int *fd, char *name) {
+    // Remove any previous instance of the shared memory object, if it exists.
+	shm_unlink(name);
+
+    // Create the shared memory object, allowing read-write access by all users,
+    // and saving the resulting file descriptor in fd
+	*fd = shm_open(name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (*fd == -1) {
+		*shm = NULL;
+		return false;
+	}
+	
+
+    // Set the capacity of the shared memory object via ftruncate.
+	if (ftruncate(*fd, sizeof(car_shared_mem))) {
+		*shm = NULL;
+		return false;
+	}
+
+    // Otherwise, attempt to map the shared memory via mmap, and save the address
+    // in *shm. If mapping fails, return false.
+	*shm = mmap(NULL, sizeof(car_shared_mem), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
+	if (*shm == MAP_FAILED) {
+		return false;
+	}
+
+    return true;
 }
 
 void set_flag(car_shared_mem *state, uint8_t *flag, uint8_t value) {

@@ -30,12 +30,11 @@ void *handle_level(void *);
 void *handle_receiver(void *);
 void *handle_connection(void *);
 
-bool create_shared_mem( car_t *);
-
 void open_doors(car_t *);
 void close_doors(car_t *);
 
 int usleep_cond(car_t *);
+int timedwait_on_floor_and_status(car_t *);
 
 int floor_to_int(char *);
 int bounds_check_floor(car_t *car, char *);

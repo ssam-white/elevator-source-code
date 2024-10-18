@@ -116,9 +116,7 @@ void *handle_level(void *arg) {
 		pthread_cleanup_pop(1);
 		// pthread_mutex_unlock(&car->state->mutex);
 
-		int result = cdcmp_floors(car->state);
-
-		if (result != 0) {
+		if (cdcmp_floors(car->state) != 0) {
 			pthread_mutex_lock(&car->state->mutex);
 			int bounds_check = bounds_check_floor(car, car->state->destination_floor);
 			pthread_mutex_unlock(&car->state->mutex);
@@ -178,7 +176,7 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	car->connected_to_controller = false;
 
 	// create the shared memory object for the cars state
-	if (!create_shared_mem(car)) {
+	if (!create_shared_mem(&car->state, &car->fd, car->shm_name)) {
 		perror("Failed to create shared object");
 		exit(1);
 	}
@@ -198,37 +196,6 @@ void car_deinit(car_t *car) {
 	car->highest_floor = NULL;
 	car->lowest_floor = NULL;
 	car->delay = 0;	
-}
-
-bool create_shared_mem( car_t* car ) {
-    // Remove any previous instance of the shared memory object, if it exists.
-	shm_unlink(car->shm_name);
-
-    // Create the shared memory object, allowing read-write access by all users,
-    // and saving the resulting file descriptor in car->fd. If creation failed,
-    // ensure that car->state is NULL and return false.
-	car->fd = shm_open(car->shm_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	if (car->fd == -1) {
-		car->state = NULL;
-		return false;
-	}
-	
-
-    // Set the capacity of the shared memory object via ftruncate. If the 
-    // operation fails, ensure that car->state is NULL and return false. 
-	if (ftruncate(car->fd, sizeof(car_shared_mem))) {
-		car->state = NULL;
-		return false;
-	}
-
-    // Otherwise, attempt to map the shared memory via mmap, and save the address
-    // in car->state. If mapping fails, return false.
-	car->state = mmap(NULL, sizeof(car_shared_mem), PROT_READ | PROT_WRITE, MAP_SHARED, car->fd, 0);
-	if (car->state == MAP_FAILED) {
-		return false;
-	}
-
-    return true;
 }
 
 void open_doors(car_t *car) {
@@ -263,6 +230,41 @@ int usleep_cond(car_t *car) {
 		if (result == ETIMEDOUT) {
 			return 0;
 		}
+	}
+}
+
+int timedwait_on_floor_and_status(car_t *car) {
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_nsec += car->delay * 1000;
+
+	char status[10];
+	char current_floor[4];
+	char destination_floor[4];
+
+	pthread_mutex_lock(&car->state->mutex);
+	strcpy(status, car->state->status);
+	strcpy(current_floor, car->state->current_floor);
+	strcpy(destination_floor, car->state->destination_floor);
+	pthread_mutex_unlock(&car->state->mutex);
+
+	while (true) {
+		pthread_mutex_lock(&car->state->mutex);
+		// int result = pthread_cond_timedwait(&car->state->cond, &car->state->mutex, &ts);
+		pthread_cond_wait(&car->state->cond, &car->state->mutex);
+		pthread_mutex_unlock(&car->state->mutex);
+
+		pthread_mutex_lock(&car->state->mutex);
+		if (
+			// result == ETIMEDOUT || 
+			strcmp(status, car->state->status) != 0 ||
+			strcmp(current_floor, car->state->current_floor) != 0 ||
+			strcmp(destination_floor, car->state->destination_floor) != 0
+		) {
+			pthread_mutex_unlock(&car->state->mutex);
+			return 0;
+		} 
+		pthread_mutex_unlock(&car->state->mutex);
 	}
 }
 
@@ -332,7 +334,13 @@ void *handle_receiver(void *arg) {
 		char *message = receive_msg(car->server_fd);		
 
 		if (strstr(message, "FLOOR")) {
-			if (bounds_check_floor(car, message + 6) == 0) {
+			pthread_mutex_lock(&car->state->mutex);
+			int result = strcmp(car->state->destination_floor, message + 6);
+			pthread_mutex_unlock(&car->state->mutex);
+
+			if (result == 0) {
+				set_open_button(car->state, 1);
+			} else {
 				set_string(car->state, car->state->destination_floor, message + 6);
 			}
 		}
@@ -345,7 +353,7 @@ void *handle_connection(void *arg) {
 	car_t *car = (car_t *) arg;
 
 	while (1) {
-		usleep_cond(car);
+		timedwait_on_floor_and_status(car);
 
 		signal_controller(car);
 

@@ -30,6 +30,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	// ignore SIGPIPE so that when messages faile to send the program doesn't terminate
+    signal(SIGPIPE, SIG_IGN);
+
 	sigset_t set;
 	int sig;
 	// initialize the signal set

@@ -20,6 +20,10 @@ internal: internal.c posix.c global.c
 car: car.c posix.c tcpip.c global.c
 	$(CC) -o car car.c posix.c tcpip.c global.c $(CFLAGS)
 
+controller: controller.c posix.c tcpip.c global.c
+	$(CC) -o controller controller.c posix.c tcpip.c $(CFLAGS)
+
+
 # Clean up object files and executables
 clean:
 	rm -f $(EXE) *.o

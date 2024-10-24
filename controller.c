@@ -5,17 +5,36 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <signal.h>
 
 #include "global.h"
 #include "tcpip.h"
 #include "controller.h"
 
+static volatile sig_atomic_t keep_running = 1;
+
+void signal_handler(int signum) {
+    keep_running = 0;
+}
+
+
 int main(void)
 {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("sigaction");
+        return 1;
+    }
+
 	controller_t controller;
 	controller_init(&controller);
 
-	while (1) {
+	while (keep_running) {
 		FD_ZERO(&controller.readfds);	
 		FD_SET(controller.server_fd, &controller.readfds);
 		controller.max_sd = controller.server_fd;
@@ -53,9 +72,9 @@ int main(void)
 		}
 
 		for (int i = 0; i < BACKLOG; i++) {
-			car_connection_t c = controller.car_connections[i];
-			if (FD_ISSET(c.sd, &controller.readfds)) {
-				char *message = receive_msg(c.sd);
+			car_connection_t *c = &controller.car_connections[i];
+			if (FD_ISSET(c->sd, &controller.readfds)) {
+				char *message = receive_msg(c->sd);
 				if (strcmp(strtok(message, " "), "STATUS") != 0) continue;
 
 				char *status = strtok(NULL, " ");
@@ -64,10 +83,9 @@ int main(void)
 
 				if (
 					strcmp(status, "Opening") == 0 &&
-					// strcmp(current_floor, destination_floor) != 0 &&
-					strcmp(c.destination_floor, destination_floor) != 0
+					strcmp(c->destination_floor, destination_floor) != 0
 				) {
-					send_message(c.sd, "FLOOR %s", c.destination_floor);
+					send_message(c->sd, "FLOOR %s", c->destination_floor);
 				}
 			}
 		}
@@ -76,7 +94,8 @@ int main(void)
 	return 0;
 }
 
-void car_connection_init(car_connection_t *c) {
+void car_connection_init(car_connection_t *c)
+{
 	c->sd = 0;
 	c->name = NULL;
 	c->lowest_floor = NULL;
@@ -87,7 +106,6 @@ void car_connection_init(car_connection_t *c) {
 void controller_init(controller_t *controller) 
 {
 	server_init(&controller->server_fd, &controller->sock);
-	controller->num_car_connections = 0;
 
 	controller->num_car_connections = 0;
 	for (int i = 0; i < BACKLOG; i++) {

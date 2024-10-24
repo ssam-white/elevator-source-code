@@ -135,12 +135,18 @@ int handle_operation(icontroller_t *icontroller) {
 }
 
 int up(car_shared_mem *state) {
-	int result = increment_floor(state);;
+	pthread_mutex_lock(&state->mutex);
+	int result = increment_floor(state->destination_floor);;
+	pthread_cond_broadcast(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
 
 int down(car_shared_mem *state) {
-	int result = decrement_floor(state);;
+	pthread_mutex_lock(&state->mutex);
+	int result = decrement_floor(state->destination_floor);;
+	pthread_cond_broadcast(&state->cond);
+	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
 

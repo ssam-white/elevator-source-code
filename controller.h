@@ -9,6 +9,7 @@ typedef struct car_connection {
 	char *name;
 	char *lowest_floor;
 	char *highest_floor;
+	char *destination_floor;
 } car_connection_t;
 
 typedef struct {
@@ -21,6 +22,8 @@ typedef struct {
 	size_t num_car_connections;
 	car_connection_t car_connections[BACKLOG];
 } controller_t;
+
+void car_connection_init(car_connection_t *);
 
 void controller_init(controller_t *);
 void server_init(int *, struct sockaddr_in *);

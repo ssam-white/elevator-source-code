@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>
 
 typedef struct {
 	pthread_mutex_t mutex;           // Locked while accessing struct contents

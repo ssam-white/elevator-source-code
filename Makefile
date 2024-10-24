@@ -5,25 +5,25 @@ CFLAGS = -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wfloat-equal -Wpointer-
          -Wmissing-declarations -Wunreachable-code -Wundef -Wcast-qual -Wwrite-strings -g
 
 # Default target (build all executables)
-all: $(EXE)
+all: call internal car controller
 
-# Pattern rule for compiling each .c file into an executable
-%: %.c
-	$(CC) -o $@ $< $(CFLAGS)
+# Pattern rule for compiling .c files to .o files
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-call: call.c posix.c tcpip.c
-	$(CC) -o call call.c posix.c tcpip.c $(CFLAGS)
+# Executable targets
+call: call.o posix.o tcpip.o
+	$(CC) $(CFLAGS) -o $@ $^
 
-internal: internal.c posix.c global.c
-	$(CC) -o internal internal.c posix.c global.c $(CFLAGS)
+internal: internal.o posix.o global.o
+	$(CC) $(CFLAGS) -o $@ $^
 
-car: car.c posix.c tcpip.c global.c
-	$(CC) -o car car.c posix.c tcpip.c global.c $(CFLAGS)
+car: car.o posix.o tcpip.o global.o
+	$(CC) $(CFLAGS) -o $@ $^
 
-controller: controller.c posix.c tcpip.c global.c
-	$(CC) -o controller controller.c posix.c tcpip.c $(CFLAGS)
-
+controller: controller.o tcpip.o global.o
+	$(CC) $(CFLAGS) -o $@ $^
 
 # Clean up object files and executables
 clean:
-	rm -f $(EXE) *.o
+	rm -f call internal car controller *.o

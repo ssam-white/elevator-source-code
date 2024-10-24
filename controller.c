@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#include "global.h"
 #include "tcpip.h"
 #include "controller.h"
 
@@ -45,9 +46,29 @@ int main(void)
 			} else if (strcmp(connection_type, "CAR") == 0) {
 				char *name = strtok(NULL, " ");
 				char *lowest_floor = strtok(NULL, " ");
-				char *highest_floor = strtok(NULL, " ");
+				char *highest_floor = strtok(NULL, "  ");
 
 				add_car_connection(&controller, client_sock, name, lowest_floor, highest_floor);
+			}
+		}
+
+		for (int i = 0; i < BACKLOG; i++) {
+			car_connection_t c = controller.car_connections[i];
+			if (FD_ISSET(c.sd, &controller.readfds)) {
+				char *message = receive_msg(c.sd);
+				if (strcmp(strtok(message, " "), "STATUS") != 0) continue;
+
+				char *status = strtok(NULL, " ");
+				char *current_floor = strtok(NULL, " ");
+				char *destination_floor = strtok(NULL, " ");
+
+				if (
+					strcmp(status, "Opening") == 0 &&
+					// strcmp(current_floor, destination_floor) != 0 &&
+					strcmp(c.destination_floor, destination_floor) != 0
+				) {
+					send_message(c.sd, "FLOOR %s", c.destination_floor);
+				}
 			}
 		}
 	}
@@ -55,18 +76,22 @@ int main(void)
 	return 0;
 }
 
+void car_connection_init(car_connection_t *c) {
+	c->sd = 0;
+	c->name = NULL;
+	c->lowest_floor = NULL;
+	c->highest_floor = NULL;
+	c->destination_floor = NULL;
+}
+
 void controller_init(controller_t *controller) 
 {
 	server_init(&controller->server_fd, &controller->sock);
 	controller->num_car_connections = 0;
 
-	car_connection_t d;
-	d.sd = 0;
-	d.name = NULL;
-	
 	controller->num_car_connections = 0;
 	for (int i = 0; i < BACKLOG; i++) {
-		controller->car_connections[i] = d;
+		car_connection_init(&controller->car_connections[i]);
 	}
 }
 
@@ -107,7 +132,8 @@ void server_init(int *fd, struct sockaddr_in *sock)
     }
 }
 
-int accept_new_connection(controller_t *controller) {
+int accept_new_connection(controller_t *controller) 
+{
 	socklen_t client_len = sizeof(controller->client_addr);
 
 	controller->client_fd = accept(controller->server_fd, (struct sockaddr *) &controller->client_addr, &client_len);
@@ -115,26 +141,34 @@ int accept_new_connection(controller_t *controller) {
 		perror("accept()");
 		return -1;
 	}
+
 	return 0;
 }
 
 void handle_call(controller_t *controller, int sd, char *source_floor, char *destination_floor)
 {
-	if (controller->num_car_connections == 0) {
-		send_message(sd, "UNAVAILABLE");
-	} else {
-		car_connection_t selected_car = controller->car_connections[0];
-		char *response = malloc(strlen(selected_car.name) + 4);
-		sprintf(response, "CAR %s", selected_car.name);
-		send_message(sd, response);
-		free(response);
+	for (size_t i = 0; i < controller->num_car_connections; i++) {
+		car_connection_t c = controller->car_connections[i];
+
+		if (
+			floor_in_range(source_floor, c.lowest_floor, c.highest_floor) == 0 &&
+			floor_in_range(destination_floor, c.lowest_floor, c.highest_floor) == 0
+		) {
+			if (c.destination_floor != NULL) free(c.destination_floor);
+			c.destination_floor = strdup(destination_floor);
+
+			send_message(sd, "CAR %s", c.name);
+			send_message(c.sd, "FLOOR %s", source_floor);
+			return;
+		}
 	}
 
+	send_message(sd, "UNAVAILABLE");
 }
+
 void add_car_connection(controller_t *controller, int sd, char *name, char *lowest_floor, char *highest_floor) 
 {
-	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor) };
+	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), strdup(lowest_floor) };
 	controller->car_connections[controller->num_car_connections] = new_car_connection;
 	controller->num_car_connections += 1;
-
 }

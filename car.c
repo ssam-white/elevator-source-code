@@ -270,20 +270,6 @@ int timedwait_on_floor_and_status(car_t *car) {
 		pthread_mutex_unlock(&car->state->mutex);
 	}
 }
-
-int floor_to_int(char *floor) {
-	int floor_number;
-	char temp_floor[5];
-	strcpy(temp_floor, floor);
-	if (temp_floor[0] == 'B') {
-		temp_floor[0] = '-';
-		floor_number = atoi(temp_floor);
-	} else {
-		floor_number = atoi(temp_floor) - 1;
-	}
-	return floor_number;
-}
-
 int bounds_check_floor(car_t *car, char *floor) {
 
 	int floor_number = floor_to_int(floor);

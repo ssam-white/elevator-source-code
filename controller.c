@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <signal.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,34 +11,46 @@
 
 int main(void)
 {
-	sigset_t set;
-	int sig;
-	// initialize the signal set
-	sigemptyset(&set);
-	// add SIGINT to the set of signals
-	sigaddset(&set, SIGINT);
-	// block the defult behavour of SIGINT
-	sigprocmask(SIG_BLOCK, &set, NULL);
-
 	controller_t controller;
 	controller_init(&controller);
 
-
 	while (1) {
-		if (accept_new_connection(&controller) < 0) {
-			return 1;
+		FD_ZERO(&controller.readfds);	
+		FD_SET(controller.server_fd, &controller.readfds);
+		controller.max_sd = controller.server_fd;
+
+		for (int i = 0; i < BACKLOG; i++) {
+			car_connection_t car_connection = controller.car_connections[i];
+			if (car_connection.sd > 0) FD_SET(car_connection.sd, &controller.readfds);
+			if (car_connection.sd > controller.max_sd) controller.max_sd = car_connection.sd;
 		}
 
-		char *message = receive_msg(controller.client_fd);
-		if (strstr(message, "CALL")) {
-			send_message(controller.client_fd, "UNAVAILABLE");
-		} else if (strstr(message, "CAR")) {
-			add_client_ad_car_connection(&controller);
+
+		int activity = select(controller.max_sd + 1, &controller.readfds, NULL, NULL, NULL);
+		if (activity < 0 && errno != EINTR) {
+			perror("Select error");
+			exit(EXIT_FAILURE);
+		}
+
+		if (FD_ISSET(controller.server_fd, &controller.readfds)) {
+			int client_sock = accept(controller.server_fd, NULL, NULL);
+			char *message = receive_msg(client_sock);
+
+			char *connection_type = strtok(message, " ");
+			if (strcmp(connection_type, "CALL") == 0) {
+				char *source_floor = strtok(NULL, " ");
+				char *destination_floor = strtok(NULL, " ");
+
+				handle_call(&controller, client_sock, source_floor, destination_floor);
+			} else if (strcmp(connection_type, "CAR") == 0) {
+				char *name = strtok(NULL, " ");
+				char *lowest_floor = strtok(NULL, " ");
+				char *highest_floor = strtok(NULL, " ");
+
+				add_car_connection(&controller, client_sock, name, lowest_floor, highest_floor);
+			}
 		}
 	}
-
-
-	sigwait(&set, &sig);
 
 	return 0;
 }
@@ -47,6 +59,15 @@ void controller_init(controller_t *controller)
 {
 	server_init(&controller->server_fd, &controller->sock);
 	controller->num_car_connections = 0;
+
+	car_connection_t d;
+	d.sd = 0;
+	d.name = NULL;
+	
+	controller->num_car_connections = 0;
+	for (int i = 0; i < BACKLOG; i++) {
+		controller->car_connections[i] = d;
+	}
 }
 
 void server_init(int *fd, struct sockaddr_in *sock)
@@ -94,16 +115,26 @@ int accept_new_connection(controller_t *controller) {
 		perror("accept()");
 		return -1;
 	}
+	return 0;
 }
 
-void add_client_ad_car_connection(controller_t *controller) {
-	car_connection_t car_connection;
-	car_connection.car_fd = controller->client_fd;
-	car_connection.car_addr = controller->client_addr;
-
-	if (controller->car_connections == NULL) {
-		controller->car_connections = (car_connection_t *) calloc(1, sizeof(car_connection_t));
-		controller->car_connections[0] = car_connection;
-		controller->num_car_connections = 1;
+void handle_call(controller_t *controller, int sd, char *source_floor, char *destination_floor)
+{
+	if (controller->num_car_connections == 0) {
+		send_message(sd, "UNAVAILABLE");
+	} else {
+		car_connection_t selected_car = controller->car_connections[0];
+		char *response = malloc(strlen(selected_car.name) + 4);
+		sprintf(response, "CAR %s", selected_car.name);
+		send_message(sd, response);
+		free(response);
 	}
+
+}
+void add_car_connection(controller_t *controller, int sd, char *name, char *lowest_floor, char *highest_floor) 
+{
+	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor) };
+	controller->car_connections[controller->num_car_connections] = new_car_connection;
+	controller->num_car_connections += 1;
+
 }

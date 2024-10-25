@@ -15,9 +15,8 @@ typedef struct car_connection {
 typedef struct {
 	int server_fd;
 	struct sockaddr_in sock;
-	int client_fd;
-	struct sockaddr_in  client_addr;
-    fd_set readfds;
+    fd_set
+		readfds;
 	int max_sd;
 	size_t num_car_connections;
 	car_connection_t car_connections[BACKLOG];
@@ -26,7 +25,8 @@ typedef struct {
 void car_connection_init(car_connection_t *);
 
 void controller_init(controller_t *);
+void car_connection_deinit(car_connection_t *);
+void controller_deinit(controller_t *);
 void server_init(int *, struct sockaddr_in *);
-int accept_new_connection(controller_t *);
 void handle_call(controller_t *, int, char *, char *);
 void add_car_connection(controller_t *, int, char *, char *, char *);

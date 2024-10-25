@@ -14,9 +14,14 @@
 static volatile sig_atomic_t keep_running = 1;
 
 void signal_handler(int signum) {
-    keep_running = 0;
+	switch (signum) {
+		case SIGINT:
+			keep_running = 0;
+			break;
+		default:
+			break;
+	}
 }
-
 
 int main(void)
 {
@@ -45,15 +50,26 @@ int main(void)
 			if (car_connection.sd > controller.max_sd) controller.max_sd = car_connection.sd;
 		}
 
-
 		int activity = select(controller.max_sd + 1, &controller.readfds, NULL, NULL, NULL);
 		if (activity < 0 && errno != EINTR) {
 			perror("Select error");
 			exit(EXIT_FAILURE);
 		}
 
+		if (!keep_running) {
+			break;
+		}
+
 		if (FD_ISSET(controller.server_fd, &controller.readfds)) {
 			int client_sock = accept(controller.server_fd, NULL, NULL);
+			if (client_sock < 0) {
+				if (errno == EINTR) {
+					return 0;
+				}
+				perror("read()");
+				return 1;
+			}
+
 			char *message = receive_msg(client_sock);
 
 			char *connection_type = strtok(message, " ");
@@ -69,27 +85,40 @@ int main(void)
 
 				add_car_connection(&controller, client_sock, name, lowest_floor, highest_floor);
 			}
+
+			free(message);
 		}
 
 		for (int i = 0; i < BACKLOG; i++) {
 			car_connection_t *c = &controller.car_connections[i];
 			if (FD_ISSET(c->sd, &controller.readfds)) {
 				char *message = receive_msg(c->sd);
-				if (strcmp(strtok(message, " "), "STATUS") != 0) continue;
-
-				char *status = strtok(NULL, " ");
-				char *current_floor = strtok(NULL, " ");
-				char *destination_floor = strtok(NULL, " ");
 
 				if (
-					strcmp(status, "Opening") == 0 &&
-					strcmp(c->destination_floor, destination_floor) != 0
+						strcmp(message, "EMERGENCY") == 0 ||
+					strcmp(message, "INDIVIDUAL SERVICE") == 0
 				) {
-					send_message(c->sd, "FLOOR %s", c->destination_floor);
+					FD_CLR(c->sd, &controller.readfds);
+					car_connection_deinit(c);
+				} else if (strcmp(strtok(message, " "), "STATUS") == 0) {
+					char *status = strtok(NULL, " ");
+					char *current_floor = strtok(NULL, " ");
+					char *destination_floor = strtok(NULL, " ");
+
+					if (
+						strcmp(status, "Opening") == 0 &&
+						strcmp(c->destination_floor, destination_floor) != 0
+					) {
+						send_message(c->sd, "FLOOR %s", c->destination_floor);
+					}
 				}
+
+				free(message);
 			}
 		}
 	}
+
+	controller_deinit(&controller);
 
 	return 0;
 }
@@ -103,6 +132,17 @@ void car_connection_init(car_connection_t *c)
 	c->destination_floor = NULL;
 }
 
+void car_connection_deinit(car_connection_t *car_connection)
+{
+	close(car_connection->sd);
+	car_connection->sd = -1;
+
+	free(car_connection->name);
+	free(car_connection->lowest_floor);
+	free(car_connection->highest_floor);
+	free(car_connection->destination_floor);
+}
+
 void controller_init(controller_t *controller) 
 {
 	server_init(&controller->server_fd, &controller->sock);
@@ -110,6 +150,19 @@ void controller_init(controller_t *controller)
 	controller->num_car_connections = 0;
 	for (int i = 0; i < BACKLOG; i++) {
 		car_connection_init(&controller->car_connections[i]);
+	}
+}
+
+void controller_deinit(controller_t *controller) 
+{
+	close(controller->server_fd);
+	controller->server_fd = -1; 
+
+	for (size_t i = 0; i < BACKLOG; i++) {
+		car_connection_t *c = &controller->car_connections[i];
+		if (FD_ISSET(c->sd, &controller->readfds)) {
+			car_connection_deinit(c);
+		}
 	}
 }
 
@@ -148,19 +201,6 @@ void server_init(int *fd, struct sockaddr_in *sock)
         close(*fd);  // Close the socket before exiting
         exit(1);
     }
-}
-
-int accept_new_connection(controller_t *controller) 
-{
-	socklen_t client_len = sizeof(controller->client_addr);
-
-	controller->client_fd = accept(controller->server_fd, (struct sockaddr *) &controller->client_addr, &client_len);
-	if (controller->client_fd == -1) {
-		perror("accept()");
-		return -1;
-	}
-
-	return 0;
 }
 
 void handle_call(controller_t *controller, int sd, char *source_floor, char *destination_floor)

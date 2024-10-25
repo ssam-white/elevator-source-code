@@ -21,7 +21,10 @@ internal: internal.o posix.o global.o
 car: car.o posix.o tcpip.o global.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-controller: controller.o tcpip.o global.o
+controller: controller.o tcpip.o global.o queue.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+t: test.o queue.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Clean up object files and executables

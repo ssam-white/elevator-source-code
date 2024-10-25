@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 
+#include "queue.h"
 #include "tcpip.h"
 
 typedef struct car_connection {
@@ -10,6 +11,7 @@ typedef struct car_connection {
 	char *lowest_floor;
 	char *highest_floor;
 	char *destination_floor;
+	queue_t queue;
 } car_connection_t;
 
 typedef struct {

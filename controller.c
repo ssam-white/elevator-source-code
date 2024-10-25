@@ -7,13 +7,14 @@
 #include <sys/socket.h>
 #include <signal.h>
 
+#include "queue.h"
 #include "global.h"
 #include "tcpip.h"
 #include "controller.h"
 
 static volatile sig_atomic_t keep_running = 1;
 
-void signal_handler(int signum) {
+static void signal_handler(int signum) {
 	switch (signum) {
 		case SIGINT:
 			keep_running = 0;
@@ -56,9 +57,7 @@ int main(void)
 			exit(EXIT_FAILURE);
 		}
 
-		if (!keep_running) {
-			break;
-		}
+		if (!keep_running) break;
 
 		if (FD_ISSET(controller.server_fd, &controller.readfds)) {
 			int client_sock = accept(controller.server_fd, NULL, NULL);
@@ -97,6 +96,7 @@ void car_connection_init(car_connection_t *c)
 	c->lowest_floor = NULL;
 	c->highest_floor = NULL;
 	c->destination_floor = NULL;
+	queue_init(&c->queue);
 }
 
 void car_connection_deinit(car_connection_t *car_connection)
@@ -108,6 +108,8 @@ void car_connection_deinit(car_connection_t *car_connection)
 	free(car_connection->lowest_floor);
 	free(car_connection->highest_floor);
 	free(car_connection->destination_floor);
+
+	queue_deinit(&car_connection->queue);
 }
 
 void controller_init(controller_t *controller) 
@@ -173,17 +175,20 @@ void server_init(int *fd, struct sockaddr_in *sock)
 void handle_call(controller_t *controller, int sd, char *source_floor, char *destination_floor)
 {
 	for (size_t i = 0; i < controller->num_car_connections; i++) {
-		car_connection_t c = controller->car_connections[i];
+		car_connection_t *c = &controller->car_connections[i];
 
 		if (
-			floor_in_range(source_floor, c.lowest_floor, c.highest_floor) == 0 &&
-			floor_in_range(destination_floor, c.lowest_floor, c.highest_floor) == 0
+			floor_in_range(source_floor, c->lowest_floor, c->highest_floor) == 0 &&
+			floor_in_range(destination_floor, c->lowest_floor, c->highest_floor) == 0
 		) {
-			if (c.destination_floor != NULL) free(c.destination_floor);
-			c.destination_floor = strdup(destination_floor);
+			enqueue(&c->queue, source_floor, DOWN_FLOOR);
+			enqueue(&c->queue, destination_floor, DOWN_FLOOR);
 
-			send_message(sd, "CAR %s", c.name);
-			send_message(c.sd, "FLOOR %s", source_floor);
+			char *f = dequeue(&c->queue);
+
+			send_message(sd, "CAR %s", c->name);
+			send_message(c->sd, "FLOOR %s", f);
+			free(f);
 			return;
 		}
 	}
@@ -193,7 +198,7 @@ void handle_call(controller_t *controller, int sd, char *source_floor, char *des
 
 void add_car_connection(controller_t *controller, int sd, char *name, char *lowest_floor, char *highest_floor) 
 {
-	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), strdup(lowest_floor) };
+	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), strdup(lowest_floor), NULL};
 	controller->car_connections[controller->num_car_connections] = new_car_connection;
 	controller->num_car_connections += 1;
 }
@@ -226,14 +231,16 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
 		car_connection_deinit(c);
 	} else if (strcmp(strtok(message, " "), "STATUS") == 0) {
 		char *status = strtok(NULL, " ");
-		char *current_floor = strtok(NULL, " ");
+		char *current_floor = strdup(strtok(NULL, " "));
 		char *destination_floor = strtok(NULL, " ");
 
 		if (
 			strcmp(status, "Opening") == 0 &&
-			strcmp(c->destination_floor, destination_floor) != 0
+			c->queue.head != NULL
 		) {
-			send_message(c->sd, "FLOOR %s", c->destination_floor);
+			char *f = dequeue(&c->queue);
+			send_message(c->sd, "FLOOR %s", f);
+			free(f);
 		}
 	}
 

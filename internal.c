@@ -145,7 +145,6 @@ int up(car_shared_mem *state) {
 int down(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
 	int result = decrement_floor(state->destination_floor);;
-	pthread_cond_broadcast(&state->cond);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
 }

@@ -269,7 +269,6 @@ int timedwait_on_floor_and_status(car_t *car) {
 		} 
 		pthread_mutex_unlock(&car->state->mutex);
 	}
-}
 int bounds_check_floor(car_t *car, char *floor) {
 
 	int floor_number = floor_to_int(floor);

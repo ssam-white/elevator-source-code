@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include "call.h"
-#include "posix.h"
 #include "tcpip.h"
 
 int main(int argc, char *argv[]) {

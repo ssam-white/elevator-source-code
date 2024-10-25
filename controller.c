@@ -64,28 +64,14 @@ int main(void)
 			int client_sock = accept(controller.server_fd, NULL, NULL);
 			if (client_sock < 0) {
 				if (errno == EINTR) {
-					return 0;
+					break;
 				}
 				perror("read()");
 				return 1;
 			}
 
 			char *message = receive_msg(client_sock);
-
-			char *connection_type = strtok(message, " ");
-			if (strcmp(connection_type, "CALL") == 0) {
-				char *source_floor = strtok(NULL, " ");
-				char *destination_floor = strtok(NULL, " ");
-
-				handle_call(&controller, client_sock, source_floor, destination_floor);
-			} else if (strcmp(connection_type, "CAR") == 0) {
-				char *name = strtok(NULL, " ");
-				char *lowest_floor = strtok(NULL, " ");
-				char *highest_floor = strtok(NULL, "  ");
-
-				add_car_connection(&controller, client_sock, name, lowest_floor, highest_floor);
-			}
-
+			handle_server_message(&controller, message, client_sock);
 			free(message);
 		}
 
@@ -93,26 +79,7 @@ int main(void)
 			car_connection_t *c = &controller.car_connections[i];
 			if (FD_ISSET(c->sd, &controller.readfds)) {
 				char *message = receive_msg(c->sd);
-
-				if (
-						strcmp(message, "EMERGENCY") == 0 ||
-					strcmp(message, "INDIVIDUAL SERVICE") == 0
-				) {
-					FD_CLR(c->sd, &controller.readfds);
-					car_connection_deinit(c);
-				} else if (strcmp(strtok(message, " "), "STATUS") == 0) {
-					char *status = strtok(NULL, " ");
-					char *current_floor = strtok(NULL, " ");
-					char *destination_floor = strtok(NULL, " ");
-
-					if (
-						strcmp(status, "Opening") == 0 &&
-						strcmp(c->destination_floor, destination_floor) != 0
-					) {
-						send_message(c->sd, "FLOOR %s", c->destination_floor);
-					}
-				}
-
+				handle_car_connection_message(&controller, c, message);
 				free(message);
 			}
 		}
@@ -229,4 +196,45 @@ void add_car_connection(controller_t *controller, int sd, char *name, char *lowe
 	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), strdup(lowest_floor) };
 	controller->car_connections[controller->num_car_connections] = new_car_connection;
 	controller->num_car_connections += 1;
+}
+
+void handle_server_message(controller_t *controller, char *message, int client_sock) 
+{
+	char *connection_type = strtok(message, " ");
+	if (strcmp(connection_type, "CALL") == 0) {
+		char *source_floor = strtok(NULL, " ");
+		char *destination_floor = strtok(NULL, " ");
+
+		handle_call(controller, client_sock, source_floor, destination_floor);
+	} else if (strcmp(connection_type, "CAR") == 0) {
+		char *name = strtok(NULL, " ");
+		char *lowest_floor = strtok(NULL, " ");
+		char *highest_floor = strtok(NULL, "  ");
+
+		add_car_connection(controller, client_sock, name, lowest_floor, highest_floor);
+	}
+
+}
+
+void handle_car_connection_message(controller_t *controller, car_connection_t *c, char *message) 
+{
+	if (
+		strcmp(message, "EMERGENCY") == 0 ||
+		strcmp(message, "INDIVIDUAL SERVICE") == 0
+	) {
+		FD_CLR(c->sd, &controller->readfds);
+		car_connection_deinit(c);
+	} else if (strcmp(strtok(message, " "), "STATUS") == 0) {
+		char *status = strtok(NULL, " ");
+		char *current_floor = strtok(NULL, " ");
+		char *destination_floor = strtok(NULL, " ");
+
+		if (
+			strcmp(status, "Opening") == 0 &&
+			strcmp(c->destination_floor, destination_floor) != 0
+		) {
+			send_message(c->sd, "FLOOR %s", c->destination_floor);
+		}
+	}
+
 }

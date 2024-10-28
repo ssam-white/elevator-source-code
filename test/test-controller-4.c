@@ -2,7 +2,7 @@
 
 // Tester for controller (single car, multiple stops, test for proper routing)
 
-#define DELAY 50000 // 50ms
+#define DELAY 50000      // 50ms
 #define MILLISECOND 1000 // 1ms
 
 pid_t controller(void);
@@ -11,8 +11,7 @@ void test_call(const char *, const char *);
 void test_recv(int, const char *);
 void cleanup(pid_t);
 
-int main()
-{
+int main() {
   pid_t p;
   p = controller();
   usleep(DELAY);
@@ -104,8 +103,7 @@ int main()
   printf("\nTests completed.\n");
 }
 
-void test_call(const char *sendmsg, const char *expectedreply)
-{
+void test_call(const char *sendmsg, const char *expectedreply) {
   int fd = connect_to_controller();
   send_message(fd, sendmsg);
   char *reply = receive_msg(fd);
@@ -115,38 +113,33 @@ void test_call(const char *sendmsg, const char *expectedreply)
   close(fd);
 }
 
-void test_recv(int fd, const char *t)
-{
+void test_recv(int fd, const char *t) {
   msg(t);
   char *m = receive_msg(fd);
   printf("RECV: %s\n", m);
   free(m);
 }
 
-int connect_to_controller(void)
-{
+int connect_to_controller(void) {
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in sockaddr;
   memset(&sockaddr, 0, sizeof(sockaddr));
   sockaddr.sin_family = AF_INET;
   sockaddr.sin_port = htons(3000);
   sockaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  if (connect(fd, (const struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1)
-  {
+  if (connect(fd, (const struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1) {
     perror("connect()");
     exit(1);
   }
   return fd;
 }
 
-void cleanup(pid_t p)
-{
+void cleanup(pid_t p) {
   // Terminate with SIGINT to allow server to clean up
   kill(p, SIGINT);
 }
 
-pid_t controller(void)
-{
+pid_t controller(void) {
   pid_t pid = fork();
   if (pid == 0) {
     execlp("./controller", "./controller", NULL);

@@ -17,7 +17,7 @@ int main()
   p = controller();
   usleep(DELAY);
 
-	ms
+
   // Attempt to call an elevator before any cars register
   test_call("CALL 1 2", "UNAVAILABLE");
 

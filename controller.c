@@ -16,8 +16,7 @@ static volatile sig_atomic_t keep_running = 1;
 
 static void signal_handler(int signum) {
 	switch (signum) {
-		case SIGINT:
-			keep_running = 0;
+		case SIGINT: keep_running = 0;
 			break;
 		default:
 			break;
@@ -95,7 +94,6 @@ void car_connection_init(car_connection_t *c)
 	c->name = NULL;
 	c->lowest_floor = NULL;
 	c->highest_floor = NULL;
-	c->destination_floor = NULL;
 	queue_init(&c->queue);
 }
 
@@ -107,7 +105,6 @@ void car_connection_deinit(car_connection_t *car_connection)
 	free(car_connection->name);
 	free(car_connection->lowest_floor);
 	free(car_connection->highest_floor);
-	free(car_connection->destination_floor);
 
 	queue_deinit(&car_connection->queue);
 }
@@ -181,14 +178,12 @@ void handle_call(controller_t *controller, int sd, char *source_floor, char *des
 			floor_in_range(source_floor, c->lowest_floor, c->highest_floor) == 0 &&
 			floor_in_range(destination_floor, c->lowest_floor, c->highest_floor) == 0
 		) {
-			enqueue(&c->queue, source_floor, DOWN_FLOOR);
-			enqueue(&c->queue, destination_floor, DOWN_FLOOR);
-
-			char *f = dequeue(&c->queue);
+			enqueue_pair(&c->queue, source_floor, destination_floor);
+			// print_queue(&c->queue);
 
 			send_message(sd, "CAR %s", c->name);
-			send_message(c->sd, "FLOOR %s", f);
-			free(f);
+			send_message(c->sd, "FLOOR %s", c->queue.head->data.floor);
+			dequeue(&c->queue);
 			return;
 		}
 	}
@@ -198,7 +193,7 @@ void handle_call(controller_t *controller, int sd, char *source_floor, char *des
 
 void add_car_connection(controller_t *controller, int sd, char *name, char *lowest_floor, char *highest_floor) 
 {
-	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), strdup(lowest_floor), NULL};
+	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), NULL};
 	controller->car_connections[controller->num_car_connections] = new_car_connection;
 	controller->num_car_connections += 1;
 }
@@ -238,9 +233,8 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
 			strcmp(status, "Opening") == 0 &&
 			c->queue.head != NULL
 		) {
-			char *f = dequeue(&c->queue);
-			send_message(c->sd, "FLOOR %s", f);
-			free(f);
+			send_message(c->sd, "FLOOR %s", peek(&c->queue));
+			dequeue(&c->queue);
 		}
 	}
 

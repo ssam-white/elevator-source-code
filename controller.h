@@ -10,15 +10,13 @@ typedef struct car_connection {
 	char *name;
 	char *lowest_floor;
 	char *highest_floor;
-	char *destination_floor;
 	queue_t queue;
 } car_connection_t;
 
 typedef struct {
 	int server_fd;
 	struct sockaddr_in sock;
-    fd_set
-		readfds;
+    fd_set readfds;
 	int max_sd;
 	size_t num_car_connections;
 	car_connection_t car_connections[BACKLOG];

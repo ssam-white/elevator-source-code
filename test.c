@@ -1,9 +1,11 @@
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "queue.h"
 
 int main(void)
 {
+
 	queue_t q;
 	queue_init(&q);
 
@@ -12,16 +14,16 @@ int main(void)
 
 	enqueue(&q, sf, UP_FLOOR);
 	enqueue(&q, df, UP_FLOOR);
-	printf("%s\n", dequeue(&q));
-	printf("%s\n", dequeue(&q));
+	 char *r = dequeue(&q);
+	free (r);
+	char *t = dequeue(&q);
+	free(t);
 
+	enqueue(&q, "1", UP_FLOOR);
+	char *a = dequeue(&q);
+	free(a);
 
-	enqueue(&q, df, DOWN_FLOOR);
-	enqueue(&q, sf, DOWN_FLOOR);
-	printf("%s\n", dequeue(&q));
-	printf("%s\n", dequeue(&q));
-
-
+	queue_deinit(&q); // Uncommented
 
 	return 0;
 }

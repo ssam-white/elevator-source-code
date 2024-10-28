@@ -48,14 +48,14 @@ int decrement_floor(char *floor) {
 
 int floor_to_int(char *floor) {
 	int floor_number;
-	char temp_floor[5];
-	strcpy(temp_floor, floor);
+	char *temp_floor = strdup(floor);;
 	if (temp_floor[0] == 'B') {
 		temp_floor[0] = '-';
 		floor_number = atoi(temp_floor);
 	} else {
 		floor_number = atoi(temp_floor) - 1;
 	}
+	free(temp_floor);
 	return floor_number;
 }
 

@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -71,4 +73,34 @@ int floor_in_range(char *floor, char *lowest_floor, char *highest_floor) {
 		return 1;
 	else
 		return 0;
+}
+
+bool is_valid_floor(char *floor) {
+	size_t len = strlen(floor);
+
+	if (len > 3) {
+		return false;
+	}
+
+	if (floor[0] == 'B') {
+		if (len == 1) {
+			return false;
+		}
+
+		for (size_t i = 1; i < len; i++) {
+			if (!isdigit((unsigned char) floor[i])) {
+				return false;
+			}
+		}
+		return true;
+
+	}
+
+	for (size_t i = 0; i < len; i++) {
+		if (!isdigit((unsigned char) floor[i])) {
+			return false;
+		}
+	}
+
+	return true;
 }

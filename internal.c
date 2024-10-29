@@ -59,10 +59,7 @@ int main(int argc, char *argv[]) {
 void icontroller_init(icontroller_t *icontroller, const char *car_name, const char *operation) {
 	icontroller->car_name = car_name;
 	icontroller->operation = operation;
-
-	icontroller->shm_name = malloc(strlen(icontroller->car_name) + 4);
-	sprintf(icontroller->shm_name, "/car%s", icontroller->car_name);
-
+	icontroller->shm_name = get_shm_name(car_name) + 4);
 	icontroller->fd = -1;
 }
 

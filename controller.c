@@ -179,11 +179,10 @@ void handle_call(controller_t *controller, int sd, char *source_floor, char *des
 			floor_in_range(destination_floor, c->lowest_floor, c->highest_floor) == 0
 		) {
 			enqueue_pair(&c->queue, source_floor, destination_floor);
-			// print_queue(&c->queue);
 
 			send_message(sd, "CAR %s", c->name);
-			send_message(c->sd, "FLOOR %s", c->queue.head->data.floor);
-			dequeue(&c->queue);
+			send_message(c->sd, "FLOOR %s", queue_peek_current(&c->queue));
+			queue_set_between(&c->queue, true);
 			return;
 		}
 	}
@@ -229,12 +228,20 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
 		char *current_floor = strdup(strtok(NULL, " "));
 		char *destination_floor = strtok(NULL, " ");
 
-		if (
-			strcmp(status, "Opening") == 0 &&
-			c->queue.head != NULL
-		) {
-			send_message(c->sd, "FLOOR %s", peek(&c->queue));
-			dequeue(&c->queue);
+		if (strcmp(status, "Between") == 0 && c->queue.head != NULL) {
+			int current_floor_number = floor_to_int(current_floor);
+			int destination_floor_number = floor_to_int(destination_floor);
+			int difference = current_floor_number - destination_floor_number;
+
+			if (difference == 1 || difference == -1 || difference == 0) {
+				dequeue(&c->queue);
+				queue_set_between(&c->queue, false);
+			} else {
+				queue_set_between(&c->queue, true);
+			}
+		} else if (strcmp(status, "Opening") == 0 && c->queue.head != NULL) {
+			send_message(c->sd, "FLOOR %s", queue_peek_current(&c->queue));
+			printf("made it\n");
 		}
 	}
 

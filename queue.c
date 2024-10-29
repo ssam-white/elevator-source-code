@@ -2,89 +2,72 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "global.h"
 #include "queue.h"
 
-// Initializes the queue by setting the head to NULL.
 void queue_init(queue_t *queue)
 {
     queue->head = NULL;
+	queue->between = false;
 }
 
-// Deinitializes the queue by freeing all allocated nodes and their data.
 void queue_deinit(queue_t *queue)
 {
-    node_t *current = queue->head; // Start with the head of the queue.
-    node_t *next;                   // Pointer to hold the next node.
-
-    // Iterate through the list and free each node.
+    node_t *current = queue->head;
+    node_t *next;
     while (current != NULL) {
-        next = current->next;       // Save the next node for iteration.
-        node_deinit(&current);      // Free the current node and its data.
-        current = next;             // Move to the next node.
+        next = current->next;
+        node_deinit(&current);
+        current = next;
     }
-
-    queue->head = NULL;             // Optionally reset the queue's head to NULL.
+    queue->head = NULL;
 }
 
-// Initializes a new node with the specified floor and direction.
-// Allocates memory for the node and duplicates the floor string.
 void node_init(node_t **node, char *floor, floor_direction_t direction, node_t *next)
 {
-    // Allocate memory for the new node.
     *node = (node_t *) calloc(1, sizeof(node_t));
     
-    // Duplicate the floor string to ensure the node owns its data.
     (*node)->data.floor = strdup(floor);
     
-    // Set the direction and next pointer for the new node.
     (*node)->data.direction = direction;
     (*node)->next = next;
 }
 
-// Deinitializes a node by freeing its allocated memory.
 void node_deinit(node_t **node)
 {
-    // Check if the node pointer and the node itself are valid.
     if (node && *node) {
-        free((*node)->data.floor); // Free the duplicated floor string.
-        free(*node);               // Free the node structure itself.
-        *node = NULL;              // Set the pointer to NULL after freeing.
+        free((*node)->data.floor);
+        free(*node);
+        *node = NULL;
     }
 }
 
-// Retrieves the last node in the queue.
 node_t *get_last(queue_t *queue)
 {
-    // Return NULL if the queue is empty.
     if (queue->head == NULL) return NULL;
-
-    node_t *current_node = queue->head; // Start from the head of the queue.
-
-    // Traverse to the last node.
+    node_t *current_node = queue->head;
     while (current_node->next != NULL) {
         current_node = current_node->next;
     }
-    
-    return current_node; // Return the last node found.
+    return current_node;
 }
 
-// Adds a new node to the end of the queue.
 void enqueue(queue_t *queue, char *floor, floor_direction_t direction)
 {
-    node_t *new_node; // Pointer to hold the new node.
-
+    node_t *new_node;
     node_init(&new_node, floor, direction, NULL);
     if (queue->head == NULL) 
         queue->head = new_node;
-    else {
-		node_t *current_node = queue->head; // Start from the head of the queue.
+    else 
+	{
+		node_t *current_node = queue->head;
 		while (current_node->next != NULL) {
 			if (strcmp(current_node->data.floor, new_node->data.floor) == 0) return;
 			current_node = current_node->next;
 		}
-		current_node->next = new_node; // Append the new node to the end.
+		current_node->next = new_node;
     }
 }
 
@@ -117,7 +100,19 @@ void enqueue_pair(queue_t *queue, char *source_floor, char *destination_floor)
 	enqueue(queue, destination_floor, direction);
 }
 
-char *peek(queue_t *queue)
+char *queue_peek_current(queue_t *queue)
 {
-	return queue->head->data.floor;
+	node_t *current = queue_get_current(queue);
+	return current == NULL ? NULL : current->data.floor;
+}
+
+void queue_set_between(queue_t *queue, bool value)
+{
+	queue->between = value;
+}
+
+node_t *queue_get_current(queue_t *queue)
+{
+	if (queue->head == NULL) return NULL;
+	return queue->between ? queue->head->next : queue->head;
 }

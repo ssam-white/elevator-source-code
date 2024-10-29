@@ -5,7 +5,6 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -36,25 +35,7 @@ int main(int argc, char *argv[])
 		pthread_cond_wait(&safety.state->cond, &safety.state->mutex);
 
 
-		if (
-			!is_valid_floor(safety.state->current_floor) ||
-			!is_valid_floor(safety.state->destination_floor) ||
-			safety.state->open_button > 1 ||
-			safety.state->close_button > 1 ||
-			safety.state->emergency_mode > 1 ||
-			safety.state->emergency_stop > 1 ||
-			safety.state->overload > 1 ||
-			safety.state->individual_service_mode > 1 ||
-			safety.state->door_obstruction > 1 ||
-			( 
-				(
-					strcmp(safety.state->status, "Open") == 0 ||
-					strcmp(safety.state->status, "Between") == 0 ||
-					strcmp(safety.state->status, "Closed") == 0
-				) 
-				&& safety.state->door_obstruction == 1 
-			)
-		) {
+		if (!is_shm_data_valid(safety.state)) {
 			printf("Data consistancy error!\n");
 			safety.state->emergency_mode = 1;
 			pthread_cond_broadcast(&safety.state->cond);
@@ -63,15 +44,7 @@ int main(int argc, char *argv[])
 		if (strcmp(safety.state->status, "Closing") == 0 && safety.state->door_obstruction == 1) {
 			strcpy(safety.state->status, "Opening");
 			pthread_cond_broadcast(&safety.state->cond);
-		} else if (strcmp(safety.state->status, "Closed") == 0) {
-		} else if (strcmp(safety.state->status, "Opening") == 0) {
-		} else if (strcmp(safety.state->status, "Open") == 0) {
-		} else if (strcmp(safety.state->status, "Between") == 0) {
-		} else {
-			printf("Data consistancy error.\n");
-			safety.state->emergency_mode = 1;
-			pthread_cond_broadcast(&safety.state->cond);
-		}
+		} 
 
 		if (safety.state->emergency_stop == 1) {
 			if (safety.emergency_msg_sent == 0) {
@@ -81,6 +54,7 @@ int main(int argc, char *argv[])
 			safety.state->emergency_mode = 1;
 			pthread_cond_broadcast(&safety.state->cond);
 		}
+
 		if (safety.state->overload == 1) {
 			if (safety.overload_msg_sent == 0) {
 				printf("The overload sensor has been tripped!\n");
@@ -115,9 +89,46 @@ bool safety_connect(safety_t *safety)
 	}
 
 	 safety->state = mmap(0, sizeof(*safety->state), PROT_READ | PROT_WRITE, MAP_SHARED, safety->fd, 0);
-	if (safety->state == NULL) {
+	if (safety->state == MAP_FAILED) {
 		return false;
 	}
 
 	return true;
+}
+
+bool is_shm_int_fields_valid(car_shared_mem *state)
+{
+	return  (
+		state->open_button < 2 &&
+		state->close_button < 2 &&
+		state->emergency_mode < 2 &&
+		state->emergency_stop < 2 &&
+		state->overload < 2 &&
+		state->individual_service_mode < 2 &&
+		state->door_obstruction < 2
+	);
+}
+
+bool is_shm_status_valid(car_shared_mem *state)
+{
+	char *statuses[] = { "Opening", "Open", "Closing", "Closed", "Between" };
+	bool is_valid = false;
+	for (int i = 0; i < 5; i++) {
+		if (strcmp(state->status, statuses[i]) == 0) {
+			is_valid = true;
+			break;
+		}
+	}
+	return is_valid;
+}
+
+bool is_shm_data_valid(car_shared_mem *state)
+{
+	return (
+		is_shm_status_valid(state) &&
+		is_valid_floor(state->current_floor) &&
+		is_valid_floor(state->destination_floor) &&
+		is_shm_int_fields_valid(state) &&
+		!(strcmp(state->status, "Closing") != 0 && state->door_obstruction == 1)
+	);
 }

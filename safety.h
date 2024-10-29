@@ -13,3 +13,7 @@ typedef struct {
 
 void safety_init(safety_t *, char *);
 bool safety_connect(safety_t *);
+
+bool is_shm_int_fields_valid(car_shared_mem *);
+bool is_shm_status_valid(car_shared_mem *);
+bool is_shm_data_valid(car_shared_mem *);

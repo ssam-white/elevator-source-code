@@ -32,4 +32,4 @@ t: test.o queue.o global.o
 
 # Clean up object files and executables
 clean:
-	rm -f call internal car controller *.o
+	rm -f call internal car controller safety t *.o

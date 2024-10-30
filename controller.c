@@ -156,16 +156,17 @@ void add_car_connection(controller_t *controller, int sd, const char *name, cons
 
 void handle_server_message(controller_t *controller, char *message, int client_sock) 
 {
-	char *connection_type = strtok(message, " ");
+	char *saveptr;
+	char *connection_type = strtok_r(message, " ", &saveptr);
 	if (strcmp(connection_type, "CALL") == 0) {
-		char *source_floor = strtok(NULL, " ");
-		char *destination_floor = strtok(NULL, " ");
+		char *source_floor = strtok_r(NULL, " ", &saveptr);
+		char *destination_floor = strtok_r(NULL, " ", &saveptr);
 
 		handle_call(controller, client_sock, source_floor, destination_floor);
 	} else if (strcmp(connection_type, "CAR") == 0) {
-		char *name = strtok(NULL, " ");
-		char *lowest_floor = strtok(NULL, " ");
-		char *highest_floor = strtok(NULL, "  ");
+		char *name = strtok_r(NULL, " ", &saveptr);
+		char *lowest_floor = strtok_r(NULL, " ", &saveptr);
+		char *highest_floor = strtok_r(NULL, "  ", &saveptr);
 
 		add_car_connection(controller, client_sock, name, lowest_floor, highest_floor);
 	}
@@ -174,16 +175,18 @@ void handle_server_message(controller_t *controller, char *message, int client_s
 
 void handle_car_connection_message(controller_t *controller, car_connection_t *c, char *message) 
 {
+	char *saveptr;
+
 	if (
 		strcmp(message, "EMERGENCY") == 0 ||
 		strcmp(message, "INDIVIDUAL SERVICE") == 0
 	) {
 		FD_CLR(c->sd, &controller->readfds);
 		car_connection_deinit(c);
-	} else if (strcmp(strtok(message, " "), "STATUS") == 0) {
-		char *status = strtok(NULL, " ");
-		char *current_floor = strdup(strtok(NULL, " "));
-		char *destination_floor = strtok(NULL, " ");
+	} else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0) {
+		char *status = strtok_r(NULL, " ", &saveptr);
+		char *current_floor = strdup(strtok_r(NULL, " ", &saveptr));
+		char *destination_floor = strtok_r(NULL, " ", &saveptr);
 
 		if (strcmp(status, "Between") == 0 && c->queue.head != NULL) {
 			int current_floor_number = floor_to_int(current_floor);
@@ -198,7 +201,6 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
 			}
 		} else if (strcmp(status, "Opening") == 0 && c->queue.head != NULL) {
 			send_message(c->sd, "FLOOR %s", queue_peek_current(&c->queue));
-			printf("made it\n");
 		}
 	}
 
@@ -247,5 +249,4 @@ void handle_incoming_messages(controller_t *controller)
 			free(message);
 		}
 	}
-
 }

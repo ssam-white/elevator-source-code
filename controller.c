@@ -157,16 +157,16 @@ void add_car_connection(controller_t *controller, int sd, const char *name, cons
 void handle_server_message(controller_t *controller, char *message, int client_sock) 
 {
 	char *saveptr;
-	char *connection_type = strtok_r(message, " ", &saveptr);
+	const char *connection_type = strtok_r(message, " ", &saveptr);
 	if (strcmp(connection_type, "CALL") == 0) {
 		char *source_floor = strtok_r(NULL, " ", &saveptr);
 		char *destination_floor = strtok_r(NULL, " ", &saveptr);
 
 		handle_call(controller, client_sock, source_floor, destination_floor);
 	} else if (strcmp(connection_type, "CAR") == 0) {
-		char *name = strtok_r(NULL, " ", &saveptr);
-		char *lowest_floor = strtok_r(NULL, " ", &saveptr);
-		char *highest_floor = strtok_r(NULL, "  ", &saveptr);
+		const char *name = strtok_r(NULL, " ", &saveptr);
+		const char *lowest_floor = strtok_r(NULL, " ", &saveptr);
+		const char *highest_floor = strtok_r(NULL, "  ", &saveptr);
 
 		add_car_connection(controller, client_sock, name, lowest_floor, highest_floor);
 	}

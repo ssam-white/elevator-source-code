@@ -15,11 +15,8 @@
 static volatile sig_atomic_t keep_running = 1;
 
 static void signal_handler(int signum) {
-	switch (signum) {
-		case SIGINT: keep_running = 0;
-			break;
-		default:
-			break;
+	if (signum == SIGINT) {
+		keep_running = 0;
 	}
 }
 
@@ -40,47 +37,7 @@ int main(void)
 	controller_init(&controller);
 
 	while (keep_running) {
-		FD_ZERO(&controller.readfds);	
-		FD_SET(controller.server_fd, &controller.readfds);
-		controller.max_sd = controller.server_fd;
-
-		for (int i = 0; i < BACKLOG; i++) {
-			car_connection_t car_connection = controller.car_connections[i];
-			if (car_connection.sd > 0) FD_SET(car_connection.sd, &controller.readfds);
-			if (car_connection.sd > controller.max_sd) controller.max_sd = car_connection.sd;
-		}
-
-		int activity = select(controller.max_sd + 1, &controller.readfds, NULL, NULL, NULL);
-		if (activity < 0 && errno != EINTR) {
-			perror("Select error");
-			exit(EXIT_FAILURE);
-		}
-
-		if (!keep_running) break;
-
-		if (FD_ISSET(controller.server_fd, &controller.readfds)) {
-			int client_sock = accept(controller.server_fd, NULL, NULL);
-			if (client_sock < 0) {
-				if (errno == EINTR) {
-					break;
-				}
-				perror("read()");
-				return 1;
-			}
-
-			char *message = receive_msg(client_sock);
-			handle_server_message(&controller, message, client_sock);
-			free(message);
-		}
-
-		for (int i = 0; i < BACKLOG; i++) {
-			car_connection_t *c = &controller.car_connections[i];
-			if (FD_ISSET(c->sd, &controller.readfds)) {
-				char *message = receive_msg(c->sd);
-				handle_car_connection_message(&controller, c, message);
-				free(message);
-			}
-		}
+		handle_incoming_messages(&controller);
 	}
 
 	controller_deinit(&controller);
@@ -190,7 +147,7 @@ void handle_call(controller_t *controller, int sd, char *source_floor, char *des
 	send_message(sd, "UNAVAILABLE");
 }
 
-void add_car_connection(controller_t *controller, int sd, char *name, char *lowest_floor, char *highest_floor) 
+void add_car_connection(controller_t *controller, int sd, const char *name, const char *lowest_floor, const char *highest_floor) 
 {
 	car_connection_t new_car_connection = { sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), NULL};
 	controller->car_connections[controller->num_car_connections] = new_car_connection;
@@ -242,6 +199,52 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
 		} else if (strcmp(status, "Opening") == 0 && c->queue.head != NULL) {
 			send_message(c->sd, "FLOOR %s", queue_peek_current(&c->queue));
 			printf("made it\n");
+		}
+	}
+
+}
+
+void handle_incoming_messages(controller_t *controller)
+{
+	FD_ZERO(&controller->readfds);	
+	FD_SET(controller->server_fd, &controller->readfds);
+	controller->max_sd = controller->server_fd;
+
+	for (int i = 0; i < BACKLOG; i++) {
+		car_connection_t car_connection = controller->car_connections[i];
+		if (car_connection.sd > 0) FD_SET(car_connection.sd, &controller->readfds);
+		if (car_connection.sd > controller->max_sd) controller->max_sd = car_connection.sd;
+	}
+
+	int activity = select(controller->max_sd + 1, &controller->readfds, NULL, NULL, NULL);
+	if (activity < 0 && errno != EINTR) {
+		perror("Select error");
+		exit(EXIT_FAILURE);
+	}
+
+	if (!keep_running) return;
+
+	if (FD_ISSET(controller->server_fd, &controller->readfds)) {
+		int client_sock = accept(controller->server_fd, NULL, NULL);
+		if (client_sock < 0) {
+			if (errno == EINTR) {
+				return;
+			}
+			perror("read()");
+			return;
+		}
+
+		char *message = receive_msg(client_sock);
+		handle_server_message(controller, message, client_sock);
+		free(message);
+	}
+
+	for (int i = 0; i < BACKLOG; i++) {
+		car_connection_t *c = &controller->car_connections[i];
+		if (FD_ISSET(c->sd, &controller->readfds)) {
+			char *message = receive_msg(c->sd);
+			handle_car_connection_message(controller, c, message);
+			free(message);
 		}
 	}
 

@@ -56,10 +56,11 @@ node_t *get_last(queue_t *queue)
 
 void enqueue(queue_t *queue, char *floor, floor_direction_t direction)
 {
-    if (queue->head == NULL) 
+    if (queue->head == NULL) {
+		node_t *new_node;
+		node_init(&new_node, floor, direction, NULL);
         queue->head = new_node;
-    else 
-	{
+	} else {
 		node_t *current_node = queue->head;
 		while (current_node->next != NULL) {
 			if (strcmp(current_node->data.floor, floor) == 0 && current_node->data.direction == direction) return;

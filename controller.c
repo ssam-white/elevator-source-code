@@ -185,7 +185,7 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
 		car_connection_deinit(c);
 	} else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0) {
 		const char *status = strtok_r(NULL, " ", &saveptr);
-		char *current_floor = strdup(strtok_r(NULL, " ", &saveptr));
+		const char *current_floor = strtok_r(NULL, " ", &saveptr);
 		const char *destination_floor = strtok_r(NULL, " ", &saveptr);
 
 		if (strcmp(status, "Between") == 0 && c->queue.head != NULL) {

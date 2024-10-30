@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <ctype.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>

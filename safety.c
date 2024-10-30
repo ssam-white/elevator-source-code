@@ -1,10 +1,8 @@
-#include <stdint.h>
 #include <string.h>
 #include <pthread.h>
 #include <fcntl.h>
 #include <semaphore.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -19,6 +17,7 @@
 int main(int argc, char *argv[]) 
 {
 	if (argc != 2) {
+		write(1, "Incorrect number of command liine arguments\n", 43);
 		return 1;
 	}
 
@@ -26,7 +25,9 @@ int main(int argc, char *argv[])
 	safety_init(&safety, argv[1]);
 
 	if (!safety_connect(&safety)) {
-		printf("Unable to access car %s.\n", safety.car_name);
+		char buf[50];
+		int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n", safety.car_name);
+		write(1, buf, len);
 		return 1;
 	}
 
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
 
 
 		if (!is_shm_data_valid(safety.state)) {
-			printf("Data consistancy error!\n");
+			write(1, "Data consistancy error!\n", 24);
 			safety.state->emergency_mode = 1;
 			pthread_cond_broadcast(&safety.state->cond);
 		}
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
 
 		if (safety.state->emergency_stop == 1) {
 			if (safety.emergency_msg_sent == 0) {
-				printf("The emergency stop button has been pressed!\n");
+				write(1, "The emergency stop button has been pressed!\n", 44);
 				safety.emergency_msg_sent = 1;
 			}
 			safety.state->emergency_mode = 1;
@@ -57,14 +58,13 @@ int main(int argc, char *argv[])
 
 		if (safety.state->overload == 1) {
 			if (safety.overload_msg_sent == 0) {
-				printf("The overload sensor has been tripped!\n");
+				write(1, "The overload sensor has been tripped!\n", 38);
 				safety.overload_msg_sent = 1;
 			}
 			safety.state->emergency_mode = 1;
 			pthread_cond_broadcast(&safety.state->cond);
 		}
 		pthread_mutex_unlock(&safety.state->mutex);
-
 
 	}
 
@@ -122,6 +122,12 @@ bool is_shm_status_valid(car_shared_mem *state)
 	return is_valid;
 }
 
+bool is_shm_obstruction_valid(car_shared_mem *state)
+{
+	// if status is not "Closing" and obstruction is 1 then the obstruction state is invalid
+	return !(strcmp(state->status, "Closing") != 0 && state->door_obstruction == 1);
+}
+
 bool is_shm_data_valid(car_shared_mem *state)
 {
 	return (
@@ -129,6 +135,7 @@ bool is_shm_data_valid(car_shared_mem *state)
 		is_valid_floor(state->current_floor) &&
 		is_valid_floor(state->destination_floor) &&
 		is_shm_int_fields_valid(state) &&
-		!(strcmp(state->status, "Closing") != 0 && state->door_obstruction == 1)
+		is_shm_obstruction_valid(state)
+
 	);
 }

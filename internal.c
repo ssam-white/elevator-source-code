@@ -123,8 +123,9 @@ int handle_operation(icontroller_t *icontroller) {
 	} else if (op_is(icontroller, "service_off")) {
 		set_service_mode(state, 0);
 	} else if (op_is(icontroller, "up") || op_is(icontroller, "down")) {
-		return  can_car_move(state) < 0 ? can_car_move(state) :
-			op_is(icontroller, "up") ? up(state) : down(state);
+		int move_car = op_is(icontroller, "up") ? up(state) : down(state);
+		return  can_car_move(state) < 0 ? can_car_move(state) : move_car;
+			
 	} else {
 		return I_INVALID_OPERATION;
 	}
@@ -133,7 +134,7 @@ int handle_operation(icontroller_t *icontroller) {
 
 int up(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
-	int result = increment_floor(state->destination_floor);;
+	int result = increment_floor(state->destination_floor);
 	pthread_cond_broadcast(&state->cond);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
@@ -141,7 +142,7 @@ int up(car_shared_mem *state) {
 
 int down(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
-	int result = decrement_floor(state->destination_floor);;
+	int result = decrement_floor(state->destination_floor);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
 }

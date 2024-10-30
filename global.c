@@ -61,8 +61,8 @@ int floor_to_int(const char *floor) {
 	return floor_number;
 }
 
-int floor_in_range(char *floor, char *lowest_floor, char *highest_floor) {
-
+int floor_in_range(const char *floor, const char *lowest_floor, const char *highest_floor) 
+{
 	int floor_number = floor_to_int(floor);
 	int lowest_floor_number = floor_to_int(lowest_floor);
 	int highest_floor_number = floor_to_int(highest_floor);

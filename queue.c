@@ -54,7 +54,7 @@ node_t *get_last(queue_t *queue)
     return current_node;
 }
 
-void enqueue(queue_t *queue, char *floor, floor_direction_t direction)
+void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
 {
     if (queue->head == NULL) {
 		node_t *new_node;
@@ -91,7 +91,7 @@ void print_queue(queue_t *queue)
 	printf("\n");
 }
 
-void enqueue_pair(queue_t *queue, char *source_floor, char *destination_floor)
+void enqueue_pair(queue_t *queue, const char *source_floor, const char *destination_floor)
 {
 	int source_number = floor_to_int(source_floor);
 	int destination_number = floor_to_int(destination_floor);

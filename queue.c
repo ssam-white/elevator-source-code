@@ -25,7 +25,7 @@ void queue_deinit(queue_t *queue)
     queue->head = NULL;
 }
 
-void node_init(node_t **node, char *floor, floor_direction_t direction, node_t *next)
+void node_init(node_t **node, const char *floor, floor_direction_t direction, node_t *next)
 {
     *node = (node_t *) calloc(1, sizeof(node_t));
     
@@ -56,17 +56,17 @@ node_t *get_last(queue_t *queue)
 
 void enqueue(queue_t *queue, char *floor, floor_direction_t direction)
 {
-    node_t *new_node;
-    node_init(&new_node, floor, direction, NULL);
     if (queue->head == NULL) 
         queue->head = new_node;
     else 
 	{
 		node_t *current_node = queue->head;
 		while (current_node->next != NULL) {
-			if (strcmp(current_node->data.floor, new_node->data.floor) == 0) return;
+			if (strcmp(current_node->data.floor, floor) == 0 && current_node->data.direction == direction) return;
 			current_node = current_node->next;
 		}
+		node_t *new_node;
+		node_init(&new_node, floor, direction, NULL);
 		current_node->next = new_node;
     }
 }

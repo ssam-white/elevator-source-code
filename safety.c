@@ -96,7 +96,7 @@ bool safety_connect(safety_t *safety)
 	return true;
 }
 
-bool is_shm_int_fields_valid(car_shared_mem *state)
+bool is_shm_int_fields_valid(const car_shared_mem *state)
 {
 	return  (
 		state->open_button < 2 &&
@@ -109,7 +109,7 @@ bool is_shm_int_fields_valid(car_shared_mem *state)
 	);
 }
 
-bool is_shm_status_valid(car_shared_mem *state)
+bool is_shm_status_valid(const car_shared_mem *state)
 {
 	char *statuses[] = { "Opening", "Open", "Closing", "Closed", "Between" };
 	bool is_valid = false;
@@ -122,7 +122,7 @@ bool is_shm_status_valid(car_shared_mem *state)
 	return is_valid;
 }
 
-bool is_shm_obstruction_valid(car_shared_mem *state)
+bool is_shm_obstruction_valid(const car_shared_mem *state)
 {
 	// if status is not "Closing" and obstruction is 1 then the obstruction state is invalid
 	return !(strcmp(state->status, "Closing") != 0 && state->door_obstruction == 1);

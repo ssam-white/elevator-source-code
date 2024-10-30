@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 void icontroller_init(icontroller_t *icontroller, const char *car_name, const char *operation) {
 	icontroller->car_name = car_name;
 	icontroller->operation = operation;
-	icontroller->shm_name = get_shm_name(car_name) + 4);
+	icontroller->shm_name = get_shm_name(car_name);
 	icontroller->fd = -1;
 }
 
@@ -81,7 +81,6 @@ void icontroller_deinit(icontroller_t *icontroller) {
 		munmap(icontroller->state, sizeof(car_shared_mem));
 		icontroller->state = NULL;
 	}
-
 }
 
 bool icontroller_connect(icontroller_t *icontroller) {
@@ -99,11 +98,15 @@ bool icontroller_connect(icontroller_t *icontroller) {
 }
 
 int can_car_move(car_shared_mem *state) {
+	pthread_mutex_lock(&state->mutex);
+	char *status = strdup(state->status);
+	pthread_mutex_unlock(&state->mutex);
+
 	if (service_mode_is(state, 0)) {
 		return I_SERVICE_MODE_ERROR;
-	} else if (status_is(state, "Between")) {
+	} else if (strcmp(status, "Between") == 0) {
 		return I_BETWEEN_FLOORS_ERROR;
-	} else if(!status_is(state, "Closed")) {
+	} else if(strcmp(status, "Closed") != 0) {
 		return I_DOORS_ERROR;
 	} 
 	return I_SUCCESS;
@@ -112,7 +115,7 @@ int can_car_move(car_shared_mem *state) {
 int handle_operation(icontroller_t *icontroller) {
 	car_shared_mem *state = icontroller->state;
 
-	if (op_is(icontroller, "open")) {
+	if (status_is(state, "Open")) {
 		set_open_button(state, 1);
 	} else if(op_is(icontroller, "close")) {
 		set_close_button(state, 1);
@@ -123,9 +126,9 @@ int handle_operation(icontroller_t *icontroller) {
 	} else if (op_is(icontroller, "service_off")) {
 		set_service_mode(state, 0);
 	} else if (op_is(icontroller, "up") || op_is(icontroller, "down")) {
-		int move_car = op_is(icontroller, "up") ? up(state) : down(state);
-		return  can_car_move(state) < 0 ? can_car_move(state) : move_car;
-			
+		int can_move = can_car_move(state);
+		if (can_move < 0) return can_move;
+		return op_is(icontroller, "up") ? up(state) : down(state);
 	} else {
 		return I_INVALID_OPERATION;
 	}
@@ -135,7 +138,9 @@ int handle_operation(icontroller_t *icontroller) {
 int up(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
 	int result = increment_floor(state->destination_floor);
-	pthread_cond_broadcast(&state->cond);
+	if (result == I_SUCCESS) {
+		pthread_cond_broadcast(&state->cond);
+	}
 	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
@@ -143,13 +148,13 @@ int up(car_shared_mem *state) {
 int down(car_shared_mem *state) {
 	pthread_mutex_lock(&state->mutex);
 	int result = decrement_floor(state->destination_floor);
+	if (result == I_SUCCESS) {
+		pthread_cond_broadcast(&state->cond);
+	}
 	pthread_mutex_unlock(&state->mutex);
 	return result;
 }
 
 bool op_is(icontroller_t *icontroller, const char *op) {
-	pthread_mutex_lock(&icontroller->state->mutex);
-	bool result = strcmp(icontroller->operation, op) == 0;
-	pthread_mutex_unlock(&icontroller->state->mutex);
-	return result;
+	return strcmp(icontroller->operation, op) == 0;
 }

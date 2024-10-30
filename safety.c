@@ -17,7 +17,7 @@
 int main(int argc, char *argv[]) 
 {
 	if (argc != 2) {
-		write(1, "Incorrect number of command liine arguments\n", 43);
+		int _ = write(1, "Incorrect number of command line arguments\n", 43);
 		return 1;
 	}
 
@@ -27,17 +27,24 @@ int main(int argc, char *argv[])
 	if (!safety_connect(&safety)) {
 		char buf[50];
 		int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n", safety.car_name);
-		write(1, buf, len);
+		int _ = write(1, buf, len);
 		return 1;
 	}
 
 	while (1) {
-		pthread_mutex_lock(&safety.state->mutex);
-		pthread_cond_wait(&safety.state->cond, &safety.state->mutex);
+		if (pthread_mutex_lock(&safety.state->mutex) < 0) {
+			return 1;
+		}
+
+		if (pthread_cond_wait(&safety.state->cond, &safety.state->mutex) < 0) {
+			return 1;
+		}
 
 
 		if (!is_shm_data_valid(safety.state)) {
-			write(1, "Data consistancy error!\n", 24);
+			int result = write(1, "Data consistancy error!\n", 24);
+			if (result < 0) return 1;
+
 			safety.state->emergency_mode = 1;
 			pthread_cond_broadcast(&safety.state->cond);
 		}
@@ -49,7 +56,8 @@ int main(int argc, char *argv[])
 
 		if (safety.state->emergency_stop == 1) {
 			if (safety.emergency_msg_sent == 0) {
-				write(1, "The emergency stop button has been pressed!\n", 44);
+				int result = write(1, "The emergency stop button has been pressed!\n", 44);
+				if (result < 0) return 1;
 				safety.emergency_msg_sent = 1;
 			}
 			safety.state->emergency_mode = 1;
@@ -58,7 +66,8 @@ int main(int argc, char *argv[])
 
 		if (safety.state->overload == 1) {
 			if (safety.overload_msg_sent == 0) {
-				write(1, "The overload sensor has been tripped!\n", 38);
+				int result = write(1, "The overload sensor has been tripped!\n", 38);
+				if (result < 0) return 1;
 				safety.overload_msg_sent = 1;
 			}
 			safety.state->emergency_mode = 1;
@@ -125,10 +134,11 @@ bool is_shm_status_valid(const car_shared_mem *state)
 bool is_shm_obstruction_valid(const car_shared_mem *state)
 {
 	// if status is not "Closing" and obstruction is 1 then the obstruction state is invalid
-	return !(strcmp(state->status, "Closing") != 0 && state->door_obstruction == 1);
+	bool is_valid_obstruction_state = strcmp(state->status, "Closing") == 0 || strcmp(state->status, "Opening") == 0;
+	return state->door_obstruction == 1 && is_valid_obstruction_state;
 }
 
-bool is_shm_data_valid(car_shared_mem *state)
+bool is_shm_data_valid(const car_shared_mem *state)
 {
 	return (
 		is_shm_status_valid(state) &&

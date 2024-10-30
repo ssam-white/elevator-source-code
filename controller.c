@@ -170,7 +170,6 @@ void handle_server_message(controller_t *controller, char *message, int client_s
 
 		add_car_connection(controller, client_sock, name, lowest_floor, highest_floor);
 	}
-
 }
 
 void handle_car_connection_message(controller_t *controller, car_connection_t *c, char *message) 

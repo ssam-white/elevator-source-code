@@ -68,17 +68,3 @@ char *receive_msg(int fd) {
 	return buf;
 }
 
-// int connect_to_controller(int *fd, struct sockaddr_in *sockaddr) {
-// 	*fd = socket(AF_INET, SOCK_STREAM, 0);
-//
-// 	memset(sockaddr, 0, sizeof(*sockaddr));
-// 	sockaddr->sin_family = AF_INET;
-// 	sockaddr->sin_port = htons(3000);
-// 	sockaddr->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-// 	if (connect(*fd, (const struct sockaddr *) sockaddr, sizeof(*sockaddr)) == -1)
-// 	{
-// 		perror("connect()");
-// 		exit(1);
-// 	}
-// 	return *fd;
-// }

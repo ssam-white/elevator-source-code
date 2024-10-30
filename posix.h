@@ -22,7 +22,7 @@ typedef struct {
 
 void init_shm(car_shared_mem *);
 void reset_shm(car_shared_mem *);
-bool create_shared_mem(car_shared_mem **, int *, char *);
+bool create_shared_mem(car_shared_mem **, int *, const char *);
 
 void set_flag(car_shared_mem *, uint8_t *, uint8_t);
 void set_status(car_shared_mem *, const char *);

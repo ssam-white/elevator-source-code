@@ -90,7 +90,7 @@ void *handle_doors(void *arg) {
 			set_open_button(car->state, 0);
 
 			set_status(car->state, "Opening");
-			usleep(car->delay);
+			sleep_delay(car);
 			set_status(car->state, "Open");
 
 
@@ -134,7 +134,7 @@ void *handle_level(void *arg) {
 
 			set_status(car->state, "Between");
 			while (cdcmp_floors(car->state) != 0) {
-				usleep(car->delay);
+				sleep_delay(car);
 				if (cdcmp_floors(car->state) > 0) {
 					pthread_mutex_lock(&car->state->mutex);
 					if (increment_floor(car->state->current_floor) == 0) {
@@ -156,11 +156,11 @@ void *handle_level(void *arg) {
 
 			if (service_mode_is(car->state, 0)) {
 				set_status(car->state, "Opening");
-				usleep(car->delay);
+				sleep_delay(car);
 				set_status(car->state, "Open");
-				usleep(car->delay);
+				sleep_delay(car);
 				set_status(car->state, "Closing");
-				usleep(car->delay);
+				sleep_delay(car);
 				set_status(car->state, "Closed");
 			}
 		} 
@@ -175,7 +175,7 @@ void car_init(car_t* car, char* name, char* lowest_floor, char* highest_floor, c
 	car->shm_name = get_shm_name(car->name);
 	car->lowest_floor = lowest_floor;
 	car->highest_floor = highest_floor;
-	car->delay = (uint8_t) atoi(delay) * 1000;
+	car->delay = (uint8_t) atoi(delay);
 	car->connected_to_controller = false;
 
 	// create the shared memory object for the cars state
@@ -203,21 +203,21 @@ void car_deinit(car_t *car) {
 
 void open_doors(car_t *car) {
 	set_status(car->state, "Opening");
-	usleep(car->delay);
+	sleep_delay(car);
 	set_status(car->state, "Open");
 }
 
 void close_doors(car_t *car) {
 	if (status_is(car->state, "Closed")) return;
 	set_status(car->state, "Closing");
-	usleep(car->delay);
+	sleep_delay(car);
 	set_status(car->state, "Closed");
 }
 
 int usleep_cond(car_t *car) {
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
-	ts.tv_nsec += car->delay * 1000;
+	ts.tv_nsec += car->delay * 1000000;
 
 	while (true) {
 		pthread_mutex_lock(&car->state->mutex);
@@ -355,3 +355,10 @@ void signal_controller(car_t *car) {
 	send_message(car->server_fd, "STATUS %s %s %s", car->state->status, car->state->current_floor, car->state->destination_floor);
 }
 
+void sleep_delay(car_t *car)
+{
+	struct timespec req;
+	req.tv_sec = 0;
+	req.tv_nsec = car->delay * 1000000;
+	nanosleep(&req, NULL);
+}

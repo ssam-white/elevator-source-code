@@ -48,9 +48,9 @@ int decrement_floor(char *floor) {
 	return 0;
 }
 
-int floor_to_int(char *floor) {
+int floor_to_int(const char *floor) {
 	int floor_number;
-	char *temp_floor = strdup(floor);;
+	char *temp_floor = strdup(floor);
 	if (temp_floor[0] == 'B') {
 		temp_floor[0] = '-';
 		floor_number = atoi(temp_floor);
@@ -75,7 +75,7 @@ int floor_in_range(char *floor, char *lowest_floor, char *highest_floor) {
 		return 0;
 }
 
-bool is_valid_floor(char *floor) {
+bool is_valid_floor(const char *floor) {
 	size_t len = strlen(floor);
 
 	if (len > 3) {

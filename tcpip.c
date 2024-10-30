@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <string.h>
 #include <stdint.h>
 #include <arpa/inet.h>
 
@@ -25,12 +24,12 @@ void send_looped(int fd, const void *buf, size_t sz) {
 	}
 }
 
-void send_message(int fd, const char *buf, ...) {
+void send_message(int fd, const char *format, ...) {
     va_list args;
-    va_start(args, buf);
+    va_start(args, format);
 
     char message[1024];
-    int message_len = vsnprintf(message, sizeof(message), buf, args);
+    int message_len = vsnprintf(message, sizeof(message), format, args);
     va_end(args);
 
     if (message_len < 0 || message_len >= sizeof(message)) {

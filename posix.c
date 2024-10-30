@@ -40,7 +40,7 @@ void init_shm(car_shared_mem *s) {
 	reset_shm(s);
 }
 
-bool create_shared_mem(car_shared_mem **shm, int *fd, char *name) {
+bool create_shared_mem(car_shared_mem **shm, int *fd, const char *name) {
     // Remove any previous instance of the shared memory object, if it exists.
 	shm_unlink(name);
 

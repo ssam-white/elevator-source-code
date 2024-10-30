@@ -126,7 +126,7 @@ void server_init(int *fd, struct sockaddr_in *sock)
     }
 }
 
-void handle_call(controller_t *controller, int sd, char *source_floor, char *destination_floor)
+void handle_call(controller_t *controller, int sd, const char *source_floor, const char *destination_floor)
 {
 	for (size_t i = 0; i < controller->num_car_connections; i++) {
 		car_connection_t *c = &controller->car_connections[i];

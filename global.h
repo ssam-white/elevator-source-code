@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 int increment_floor(char *);
 int decrement_floor(char *);
 int floor_to_int(char *);

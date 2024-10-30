@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "global.h
+#include "global.h"
 #include "call.h"
 #include "tcpip.h"
 

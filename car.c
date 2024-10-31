@@ -196,8 +196,7 @@ void *handle_level(void *arg)
     }
 }
 
-void car_init(car_t *car, char *name, char *lowest_floor, char *highest_floor,
-              char *delay)
+void car_init(car_t *car, const char *name, const char *lowest_floor, const char *highest_floor, const char *delay)
 {
     car->name = name;
     car->shm_name = get_shm_name(car->name);

@@ -10,10 +10,10 @@ typedef struct
 {
     int server_fd;
     struct sockaddr_in server_addr;
-    char *name;
+    const char *name;
     char *shm_name;
-    char *lowest_floor;
-    char *highest_floor;
+    const char *lowest_floor;
+    const char *highest_floor;
     uint32_t delay;
     int fd;
     pthread_t door_thread;
@@ -24,7 +24,7 @@ typedef struct
     car_shared_mem *state;
 } car_t;
 
-void car_init(car_t *, char *, char *, char *, char *);
+void car_init(car_t *, const char *, const char *, const char *, const char *);
 void car_deinit(car_t *);
 
 void *handle_doors(void *);

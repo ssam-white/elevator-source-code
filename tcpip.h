@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdlib.h>  // also provides size_t
 #include <netinet/in.h>
+#include <stdlib.h> // also provides size_t
 
 #define PORT 3000
 #define URL "127.0.0.1"

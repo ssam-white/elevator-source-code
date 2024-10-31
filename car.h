@@ -1,29 +1,30 @@
 #pragma once
 
-#include <pthread.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include <stdint.h>
 
 #include "posix.h"
 
-typedef struct {
-	int server_fd;
-	struct sockaddr_in server_addr;
-	char *name;
-	char *shm_name;
-	char *lowest_floor;
-	char *highest_floor;
-	uint32_t delay;
-	int fd;
-	pthread_t door_thread;
-	pthread_t level_thread;
-	pthread_t receiver_thread;
-	pthread_t connection_thread;
-	bool connected_to_controller;
-	car_shared_mem *state;
+typedef struct
+{
+    int server_fd;
+    struct sockaddr_in server_addr;
+    char *name;
+    char *shm_name;
+    char *lowest_floor;
+    char *highest_floor;
+    uint32_t delay;
+    int fd;
+    pthread_t door_thread;
+    pthread_t level_thread;
+    pthread_t receiver_thread;
+    pthread_t connection_thread;
+    bool connected_to_controller;
+    car_shared_mem *state;
 } car_t;
 
-void car_init(car_t*, char*, char*, char*, char*);
+void car_init(car_t *, char *, char *, char *, char *);
 void car_deinit(car_t *);
 
 void *handle_doors(void *);

@@ -2,24 +2,28 @@
 
 #include <stdbool.h>
 
-typedef enum {
+typedef enum
+{
     UP_FLOOR = 1,
     DOWN_FLOOR = 0,
 } floor_direction_t;
 
-typedef struct {
+typedef struct
+{
     floor_direction_t direction; // Direction of the floor request
     char *floor;                 // The floor number as a string
 } node_data_t;
 
-typedef struct node {
-    node_data_t data;           // Data contained in the node
-    struct node *next;          // Pointer to the next node in the queue
+typedef struct node
+{
+    node_data_t data;  // Data contained in the node
+    struct node *next; // Pointer to the next node in the queue
 } node_t;
 
-typedef struct {
-    node_t *head;               // Pointer to the head node of the queue
-	bool between;
+typedef struct
+{
+    node_t *head; // Pointer to the head node of the queue
+    bool between;
 } queue_t;
 
 // Function prototypes

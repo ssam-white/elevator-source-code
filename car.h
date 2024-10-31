@@ -25,6 +25,7 @@ typedef struct {
 
 void car_init(car_t*, char*, char*, char*, char*);
 void car_deinit(car_t *);
+
 void *handle_doors(void *);
 void *handle_level(void *);
 void *handle_receiver(void *);
@@ -38,6 +39,5 @@ int timedwait_on_floor_and_status(car_t *);
 
 int bounds_check_floor(car_t *car, char *);
 int cdcmp_floors(car_shared_mem *);
-bool connect_to_controller(car_t *);
 void signal_controller(car_t *);
 void sleep_delay(car_t *);

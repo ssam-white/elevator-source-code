@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	pthread_create(&car.door_thread, NULL, handle_doors, &car);
 	pthread_create(&car.level_thread, NULL, handle_level, &car);
 
-	if (connect_to_controller(&car)) {
+	if (connect_to_controller(&car.server_fd, &car.server_addr)) {
 		car.connected_to_controller = true;
 		pthread_create(&car.receiver_thread, NULL, handle_receiver, &car);
 		pthread_create(&car.connection_thread, NULL, handle_connection, &car);
@@ -291,30 +291,6 @@ int cdcmp_floors(car_shared_mem *state) {
 	int result = strcmp(state->destination_floor, state->current_floor);
 	pthread_mutex_unlock(&state->mutex);
 	return result;
-}
-
-bool connect_to_controller(car_t *car) {
-	// create the socket
-	if ((car->server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		return false;
-	}
-
-	// set the sockets address
-	car->server_addr.sin_family = AF_INET;
-	car->server_addr.sin_port = htons(PORT);
-	if (inet_pton(AF_INET, URL, &car->server_addr.sin_addr) <= 0) {
-		close(car->server_fd);
-		return false;
-	}
-
-	// connect to the server
-	if (connect(car->server_fd, (struct sockaddr *)&car->server_addr,
-			 sizeof(car->server_addr)) < 0) {
-		close(car->server_fd);
-		return false;
-	}
-
-	return true;
 }
 
 void *handle_receiver(void *arg) {

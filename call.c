@@ -5,8 +5,8 @@
 #include <unistd.h>
 
 #include "global.h"
-#include "call.h"
 #include "tcpip.h"
+#include "call.h"
 
 int main(int argc, char *argv[]) {
 	// validate the command line arguments
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// connect the call pad to the controller
-	if (!call_pad_connect(&call_pad)) {
+	if (!connect_to_controller(&call_pad.sock, &call_pad.server_addr)) {
 		printf("Unable to connect to elevator system.\n");
 		return 1;
 	}
@@ -66,27 +66,4 @@ void call_pad_deinit(call_pad_t *call_pad) {
 	}
 }
 
-bool call_pad_connect(call_pad_t *call_pad) {
-	// create the socket
-	if ((call_pad->sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		return false;
-	}
-
-	// set the sockets address
-	call_pad->server_addr.sin_family = AF_INET;
-	call_pad->server_addr.sin_port = htons(PORT);
-	if (inet_pton(AF_INET, URL, &call_pad->server_addr.sin_addr) <= 0) {
-		close(call_pad->sock);
-		return false;
-	}
-
-	// connect to the server
-	if (connect(call_pad->sock, (struct sockaddr *)&call_pad->server_addr,
-			 sizeof(call_pad->server_addr)) < 0) {
-		close(call_pad->sock);
-		return false;
-	}
-
-	return true;
-}
 

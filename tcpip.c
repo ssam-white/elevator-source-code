@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -8,6 +9,31 @@
 #include <arpa/inet.h>
 
 #include "tcpip.h"
+
+bool connect_to_controller(int *sd, struct sockaddr_in *sockaddr)
+{
+	// create the socket
+	*sd = socket(AF_INET, SOCK_STREAM, 0);
+	if (*sd < 0) {
+		return false;
+	}
+
+	// set the sockets address
+	sockaddr->sin_family = AF_INET;
+	sockaddr->sin_port = htons(PORT);
+	if (inet_pton(AF_INET, URL, &sockaddr->sin_addr) <= 0) {
+		close(*sd);
+		return false;
+	}
+
+	// connect to the server
+	if (connect(*sd, (struct sockaddr *)sockaddr, sizeof(*sockaddr)) < 0) {
+		close(*sd);
+		return false;
+	}
+
+	return true;
+}
 
 void send_looped(int fd, const void *buf, size_t sz) {
 	const char *ptr = buf;

@@ -310,7 +310,7 @@ int timedwait_on_floor_and_status(car_t *car)
     }
 }
 
-int bounds_check_floor(car_t *car, char *floor)
+int bounds_check_floor(const car_t *car, const char *floor)
 {
 
     int floor_number = floor_to_int(floor);

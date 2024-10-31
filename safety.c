@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        int _ = write(1, "Incorrect number of command line arguments\n", 43);
+        int result = write(1, "Incorrect number of command line arguments\n", 43);
+		if (result < 0) return 1;
         return 1;
     }
 
@@ -28,8 +29,7 @@ int main(int argc, char *argv[])
     if (!connect_to_car(&safety.state, safety.shm_name, &safety.fd))
     {
         char buf[50];
-        int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n",
-                           safety.car_name);
+        int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n", safety.car_name);
         int _ = write(1, buf, len);
         return 1;
     }
@@ -67,8 +67,7 @@ int main(int argc, char *argv[])
         {
             if (safety.emergency_msg_sent == 0)
             {
-                int result = write(
-                    1, "The emergency stop button has been pressed!\n", 44);
+                int result = write(1, "The emergency stop button has been pressed!\n", 44);
                 if (result < 0)
                     return 1;
                 safety.emergency_msg_sent = 1;
@@ -81,8 +80,7 @@ int main(int argc, char *argv[])
         {
             if (safety.overload_msg_sent == 0)
             {
-                int result =
-                    write(1, "The overload sensor has been tripped!\n", 38);
+                int result = write(1, "The overload sensor has been tripped!\n", 38);
                 if (result < 0)
                     return 1;
                 safety.overload_msg_sent = 1;
@@ -116,7 +114,7 @@ bool is_shm_int_fields_valid(const car_shared_mem *state)
 
 bool is_shm_status_valid(const car_shared_mem *state)
 {
-    char *statuses[] = {"Opening", "Open", "Closing", "Closed", "Between"};
+    const char *statuses[] = {"Opening", "Open", "Closing", "Closed", "Between"};
     bool is_valid = false;
     for (int i = 0; i < 5; i++)
     {

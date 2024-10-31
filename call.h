@@ -13,3 +13,4 @@ typedef struct
 
 void call_pad_init(call_pad_t *, const char *, const char *);
 void call_pad_deinit(call_pad_t *);
+void handle_call(call_pad_t *);

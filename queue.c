@@ -97,7 +97,7 @@ void print_queue(queue_t *queue)
     node_t *current = queue->head;
     while (current != NULL)
     {
-        char *direction = current->data.direction == UP_FLOOR ? "U" : "D";
+        const char *direction = current->data.direction == UP_FLOOR ? "U" : "D";
         printf("%s%s ", direction, current->data.floor);
         current = current->next;
     }

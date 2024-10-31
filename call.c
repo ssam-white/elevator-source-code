@@ -24,8 +24,9 @@ int main(int argc, char *argv[])
     if (strcmp(call_pad.source_floor, call_pad.destination_floor) == 0)
     {
         printf("You are already on that floor!\n");
-        return 1;
-    }
+		call_pad_deinit(&call_pad);
+        return 0;
+   }
 
     // connect the call pad to the controller
     if (!connect_to_controller(&call_pad.sock, &call_pad.server_addr))
@@ -34,24 +35,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    char msg[13];
-    snprintf(msg, sizeof(msg), "CALL %s %s", call_pad.source_floor,
-             call_pad.destination_floor);
-    send_message(call_pad.sock, msg);
-
-    char *response = receive_msg(call_pad.sock);
-    if (strcmp(response, "UNAVAILABLE") == 0)
-    {
-        printf("Sorry, no car is available to take this request.\n");
-    }
-    else
-    {
-        printf("%s is arriving.\n", response);
-    }
-
-    free(response);
-
-    // deinitialize the call pad object
+	handle_call(&call_pad);
     call_pad_deinit(&call_pad);
 
     return 0;
@@ -75,4 +59,26 @@ void call_pad_deinit(call_pad_t *call_pad)
         close(call_pad->sock);
         call_pad->sock = -1;
     }
+}
+
+void handle_call(call_pad_t *call_pad)
+{
+    send_message(call_pad->sock, "CALL %s %s", call_pad->source_floor, call_pad->destination_floor);
+    char *response = receive_msg(call_pad->sock);
+
+
+	char *saveptr;
+	const char *response_type = strtok_r(response, " ", &saveptr);
+
+    if (strcmp(response_type, "UNAVAILABLE") == 0)
+    {
+        printf("Sorry, no car is available to take this request.\n");
+    }
+    else
+    {
+		const char *car_name = strtok_r(NULL, " ", &saveptr);
+        printf("Car %s is arriving.\n", car_name);
+    }
+
+    free(response);
 }

@@ -29,7 +29,8 @@ int main(int argc, char *argv[])
     icontroller_init(&icontroller, argv[1], argv[2]);
 
     // attempt to connect to the car shared emory object
-    if (!icontroller_connect(&icontroller))
+    if (!connect_to_car(&icontroller.state, icontroller.shm_name,
+                        &icontroller.fd))
     {
         printf("Unable to access car %s.\n", icontroller.car_name);
         return 1;
@@ -91,27 +92,6 @@ void icontroller_deinit(icontroller_t *icontroller)
     }
 }
 
-bool icontroller_connect(icontroller_t *icontroller)
-{
-    icontroller->fd =
-        shm_open(icontroller->shm_name, O_RDWR,
-                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (icontroller->fd < 0)
-    {
-        return false;
-    }
-
-    icontroller->state =
-        mmap(0, sizeof(*icontroller->state), PROT_READ | PROT_WRITE, MAP_SHARED,
-             icontroller->fd, 0);
-    if (icontroller->state == NULL)
-    {
-        return false;
-    }
-
-    return true;
-}
-
 int can_car_move(car_shared_mem *state)
 {
     pthread_mutex_lock(&state->mutex);
@@ -142,7 +122,7 @@ int handle_operation(icontroller_t *icontroller)
     {
         set_open_button(state, 1);
     }
-    else if (op_is(const icontroller, "close"))
+    else if (op_is(icontroller, "close"))
     {
         set_close_button(state, 1);
     }
@@ -197,7 +177,7 @@ int down(car_shared_mem *state)
     return result;
 }
 
-bool op_is(icontroller_t *icontroller, const char *op)
+bool op_is(const icontroller_t *icontroller, const char *op)
 {
     return strcmp(icontroller->operation, op) == 0;
 }

@@ -92,9 +92,9 @@ void *handle_doors(void *arg)
     while (1)
     {
         pthread_mutex_lock(&car->state->mutex);
-		pthread_cleanup_push(cleanup_mutex, &car->state->mutex);
-		pthread_cond_wait(&car->state->cond, &car->state->mutex);
-		pthread_cleanup_pop(1);
+        pthread_cleanup_push(cleanup_mutex, &car->state->mutex);
+        pthread_cond_wait(&car->state->cond, &car->state->mutex);
+        pthread_cleanup_pop(1);
 
         if (open_button_is(car->state, 1))
         {
@@ -196,7 +196,8 @@ void *handle_level(void *arg)
     }
 }
 
-void car_init(car_t *car, const char *name, const char *lowest_floor, const char *highest_floor, const char *delay)
+void car_init(car_t *car, const char *name, const char *lowest_floor,
+              const char *highest_floor, const char *delay)
 {
     car->name = name;
     car->shm_name = get_shm_name(car->name);
@@ -292,8 +293,6 @@ int timedwait_on_floor_and_status(car_t *car)
     while (true)
     {
         pthread_mutex_lock(&car->state->mutex);
-        // int result = pthread_cond_timedwait(&car->state->cond,
-        // &car->state->mutex, &ts);
         pthread_cond_wait(&car->state->cond, &car->state->mutex);
         pthread_mutex_unlock(&car->state->mutex);
 

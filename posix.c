@@ -25,6 +25,25 @@ void reset_shm(car_shared_mem *s)
     pthread_mutex_unlock(&s->mutex);
 }
 
+bool connect_to_car(car_shared_mem **state, const char *shm_name, int *fd)
+{
+    *fd = shm_open(shm_name, O_RDWR,
+                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (*fd < 0)
+    {
+        return false;
+    }
+
+    *state =
+        mmap(0, sizeof(**state), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
+    if (*state == NULL)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 void init_shm(car_shared_mem *s)
 {
     pthread_mutexattr_t mutattr;

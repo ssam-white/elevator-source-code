@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     safety_t safety;
     safety_init(&safety, argv[1]);
 
-    if (!safety_connect(&safety))
+    if (!connect_to_car(&safety.state, safety.shm_name, &safety.fd))
     {
         char buf[50];
         int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n",
@@ -104,26 +104,6 @@ void safety_init(safety_t *safety, char *car_name)
     safety->state = NULL;
     safety->emergency_msg_sent = 0;
     safety->overload_msg_sent = 0;
-}
-
-bool safety_connect(safety_t *safety)
-{
-    safety->fd =
-        shm_open(safety->shm_name, O_RDWR,
-                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (safety->fd < 0)
-    {
-        return false;
-    }
-
-    safety->state = mmap(0, sizeof(*safety->state), PROT_READ | PROT_WRITE,
-                         MAP_SHARED, safety->fd, 0);
-    if (safety->state == MAP_FAILED)
-    {
-        return false;
-    }
-
-    return true;
 }
 
 bool is_shm_int_fields_valid(const car_shared_mem *state)

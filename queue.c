@@ -26,8 +26,7 @@ void queue_deinit(queue_t *queue)
     queue->head = NULL;
 }
 
-void node_init(node_t **node, const char *floor, floor_direction_t direction,
-               node_t *next)
+void node_init(node_t **node, const char *floor, floor_direction_t direction, node_t *next)
 {
     *node = (node_t *)calloc(1, sizeof(node_t));
 
@@ -104,13 +103,11 @@ void print_queue(queue_t *queue)
     printf("\n");
 }
 
-void enqueue_pair(queue_t *queue, const char *source_floor,
-                  const char *destination_floor)
+void enqueue_pair(queue_t *queue, const char *source_floor, const char *destination_floor)
 {
     int source_number = floor_to_int(source_floor);
     int destination_number = floor_to_int(destination_floor);
-    floor_direction_t direction =
-        source_number > destination_number ? DOWN_FLOOR : UP_FLOOR;
+    floor_direction_t direction = source_number > destination_number ? DOWN_FLOOR : UP_FLOOR;
 
     enqueue(queue, source_floor, direction);
     enqueue(queue, destination_floor, direction);
@@ -129,4 +126,9 @@ node_t *queue_get_current(queue_t *queue)
     if (queue->head == NULL)
         return NULL;
     return queue->between ? queue->head->next : queue->head;
+}
+
+bool queue_empty(queue_t *queue)
+{
+	return queue->head == NULL;
 }

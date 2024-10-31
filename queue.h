@@ -39,3 +39,4 @@ void enqueue_pair(queue_t *, const char *, const char *);
 char *queue_peek_current(queue_t *);
 void queue_set_between(queue_t *, bool);
 node_t *queue_get_current(queue_t *);
+bool queue_empty(queue_t *);

@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
     if (argc != 2)
     {
         int result = write(1, "Incorrect number of command line arguments\n", 43);
-		if (result < 0) return 1;
+        if (result < 0)
+            return 1;
         return 1;
     }
 
@@ -56,8 +57,7 @@ int main(int argc, char *argv[])
             pthread_cond_broadcast(&safety.state->cond);
         }
 
-        if (strcmp(safety.state->status, "Closing") == 0 &&
-            safety.state->door_obstruction == 1)
+        if (strcmp(safety.state->status, "Closing") == 0 && safety.state->door_obstruction == 1)
         {
             strcpy(safety.state->status, "Opening");
             pthread_cond_broadcast(&safety.state->cond);
@@ -106,10 +106,9 @@ void safety_init(safety_t *safety, char *car_name)
 
 bool is_shm_int_fields_valid(const car_shared_mem *state)
 {
-    return (state->open_button < 2 && state->close_button < 2 &&
-            state->emergency_mode < 2 && state->emergency_stop < 2 &&
-            state->overload < 2 && state->individual_service_mode < 2 &&
-            state->door_obstruction < 2);
+    return (state->open_button < 2 && state->close_button < 2 && state->emergency_mode < 2 &&
+            state->emergency_stop < 2 && state->overload < 2 &&
+            state->individual_service_mode < 2 && state->door_obstruction < 2);
 }
 
 bool is_shm_status_valid(const car_shared_mem *state)
@@ -131,17 +130,16 @@ bool is_shm_obstruction_valid(const car_shared_mem *state)
 {
     // if status is not "Closing" and obstruction is 1 then the obstruction
     // state is invalid
-    bool is_valid_obstruction_state = strcmp(state->status, "Closing") == 0 ||
-                                      strcmp(state->status, "Opening") == 0;
+    bool is_valid_obstruction_state =
+        strcmp(state->status, "Closing") == 0 || strcmp(state->status, "Opening") == 0;
     return state->door_obstruction == 1 && is_valid_obstruction_state;
 }
 
 bool is_shm_data_valid(const car_shared_mem *state)
 {
-    return (is_shm_status_valid(state) &&
-            is_valid_floor(state->current_floor) &&
-            is_valid_floor(state->destination_floor) &&
-            is_shm_int_fields_valid(state) && is_shm_obstruction_valid(state)
+    return (is_shm_status_valid(state) && is_valid_floor(state->current_floor) &&
+            is_valid_floor(state->destination_floor) && is_shm_int_fields_valid(state) &&
+            is_shm_obstruction_valid(state)
 
     );
 }

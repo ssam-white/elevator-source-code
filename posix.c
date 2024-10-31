@@ -27,15 +27,13 @@ void reset_shm(car_shared_mem *s)
 
 bool connect_to_car(car_shared_mem **state, const char *shm_name, int *fd)
 {
-    *fd = shm_open(shm_name, O_RDWR,
-                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    *fd = shm_open(shm_name, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (*fd < 0)
     {
         return false;
     }
 
-    *state =
-        mmap(0, sizeof(**state), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
+    *state = mmap(0, sizeof(**state), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
     if (*state == NULL)
     {
         return false;
@@ -68,8 +66,8 @@ bool create_shared_mem(car_shared_mem **shm, int *fd, const char *name)
 
     // Create the shared memory object, allowing read-write access by all users,
     // and saving the resulting file descriptor in fd
-    *fd = shm_open(name, O_RDWR | O_CREAT,
-                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    *fd =
+        shm_open(name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (*fd == -1)
     {
         *shm = NULL;
@@ -85,8 +83,7 @@ bool create_shared_mem(car_shared_mem **shm, int *fd, const char *name)
 
     // Otherwise, attempt to map the shared memory via mmap, and save the
     // address in *shm. If mapping fails, return false.
-    *shm = mmap(NULL, sizeof(car_shared_mem), PROT_READ | PROT_WRITE,
-                MAP_SHARED, *fd, 0);
+    *shm = mmap(NULL, sizeof(car_shared_mem), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
     if (*shm == MAP_FAILED)
     {
         return false;
@@ -143,8 +140,7 @@ void set_emergency_mode(car_shared_mem *state, uint8_t value)
     pthread_mutex_unlock(&state->mutex);
 }
 
-void set_string(car_shared_mem *state, char *destination, const char *source,
-                ...)
+void set_string(car_shared_mem *state, char *destination, const char *source, ...)
 {
     va_list args;
 

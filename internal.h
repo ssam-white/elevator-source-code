@@ -30,4 +30,4 @@ int handle_operation(icontroller_t *);
 
 int up(car_shared_mem *);
 int down(car_shared_mem *);
-bool op_is(icontroller_t *, const char *);
+bool op_is(const icontroller_t *, const char *);

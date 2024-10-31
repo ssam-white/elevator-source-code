@@ -346,7 +346,7 @@ void *handle_receiver(void *arg)
 
     while (1)
     {
-        char *message = receive_msg(car->server_fd);
+        const char *message = receive_msg(car->server_fd);
 
         if (strstr(message, "FLOOR"))
         {
@@ -389,7 +389,7 @@ void signal_controller(car_t *car)
                  car->state->current_floor, car->state->destination_floor);
 }
 
-void sleep_delay(car_t *car)
+void sleep_delay(const car_t *car)
 {
     struct timespec req;
     req.tv_sec = 0;

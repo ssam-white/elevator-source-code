@@ -38,7 +38,7 @@ void close_doors(car_t *);
 int usleep_cond(car_t *);
 int timedwait_on_floor_and_status(car_t *);
 
-int bounds_check_floor(car_t *car, char *);
+int bounds_check_floor(const car_t *, const char *);
 int cdcmp_floors(car_shared_mem *);
 void signal_controller(car_t *);
-void sleep_delay(car_t *);
+void sleep_delay(const car_t *);

@@ -142,7 +142,7 @@ int handle_operation(icontroller_t *icontroller)
     {
         set_open_button(state, 1);
     }
-    else if (op_is(icontroller, "close"))
+    else if (op_is(const icontroller, "close"))
     {
         set_close_button(state, 1);
     }

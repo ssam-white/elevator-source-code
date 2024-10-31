@@ -92,9 +92,11 @@ void *handle_doors(void *arg)
     while (1)
     {
         pthread_mutex_lock(&car->state->mutex);
-        pthread_cleanup_push(cleanup_mutex, &car->state->mutex);
-        pthread_cond_wait(&car->state->cond, &car->state->mutex);
-        pthread_cleanup_pop(1);
+		{
+			pthread_cleanup_push(cleanup_mutex, &car->state->mutex);
+			pthread_cond_wait(&car->state->cond, &car->state->mutex);
+			pthread_cleanup_pop(1);
+		}
 
         if (open_button_is(car->state, 1))
         {
@@ -127,10 +129,11 @@ void *handle_level(void *arg)
     while (1)
     {
         pthread_mutex_lock(&car->state->mutex);
-        pthread_cleanup_push(cleanup_mutex, &car->state->mutex);
-        pthread_cond_wait(&car->state->cond, &car->state->mutex);
-        pthread_cleanup_pop(1);
-        // pthread_mutex_unlock(&car->state->mutex);
+		{
+			pthread_cleanup_push(cleanup_mutex, &car->state->mutex);
+			pthread_cond_wait(&car->state->cond, &car->state->mutex);
+			pthread_cleanup_pop(1);
+		}
 
         if (cdcmp_floors(car->state) != 0)
         {

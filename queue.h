@@ -11,6 +11,7 @@ typedef enum
 typedef struct
 {
     floor_direction_t direction; // Direction of the floor request
+	bool been_displayed;
     char *floor;                 // The floor number as a string
 } node_data_t;
 
@@ -31,12 +32,11 @@ void queue_init(queue_t *);
 void queue_deinit(queue_t *);
 void node_init(node_t **, const char *, floor_direction_t, node_t *);
 void node_deinit(node_t **);
-node_t *get_last(queue_t *);
 void enqueue(queue_t *, const char *, floor_direction_t);
 void dequeue(queue_t *);
 void print_queue(queue_t *);
 void enqueue_pair(queue_t *, const char *, const char *);
-char *queue_peek_current(queue_t *);
-void queue_set_between(queue_t *, bool);
+char *queue_peek(queue_t *);
+char *queue_get_undisplayed(queue_t *);
 node_t *queue_get_current(queue_t *);
 bool queue_empty(queue_t *);

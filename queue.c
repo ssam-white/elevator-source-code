@@ -33,6 +33,7 @@ void node_init(node_t **node, const char *floor, floor_direction_t direction, no
     (*node)->data.floor = strdup(floor);
 
     (*node)->data.direction = direction;
+	(*node)->data.been_displayed = false;
     (*node)->next = next;
 }
 
@@ -44,18 +45,6 @@ void node_deinit(node_t **node)
         free(*node);
         *node = NULL;
     }
-}
-
-node_t *get_last(queue_t *queue)
-{
-    if (queue->head == NULL)
-        return NULL;
-    node_t *current_node = queue->head;
-    while (current_node->next != NULL)
-    {
-        current_node = current_node->next;
-    }
-    return current_node;
 }
 
 void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
@@ -74,6 +63,7 @@ void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
             if (strcmp(current_node->data.floor, floor) == 0 &&
                 current_node->data.direction == direction)
                 return;
+
             current_node = current_node->next;
         }
         node_t *new_node;
@@ -113,13 +103,28 @@ void enqueue_pair(queue_t *queue, const char *source_floor, const char *destinat
     enqueue(queue, destination_floor, direction);
 }
 
-char *queue_peek_current(queue_t *queue)
+char *queue_peek(queue_t *queue)
 {
-    node_t *current = queue_get_current(queue);
-    return current == NULL ? NULL : current->data.floor;
+	if (queue_empty(queue))
+		return NULL;
+	else
+	{
+		return queue->head->data.floor;
+	}
 }
 
-void queue_set_between(queue_t *queue, bool value) { queue->between = value; }
+char *queue_get_undisplayed(queue_t *queue)
+{
+	if (queue_empty(queue))
+		return NULL;
+	else
+	{
+		node_t *current = queue->head;
+		while (current->data.been_displayed) current = current->next;
+		current->data.been_displayed = true;
+		return current->data.floor;
+	}
+}
 
 node_t *queue_get_current(queue_t *queue)
 {
@@ -128,7 +133,4 @@ node_t *queue_get_current(queue_t *queue)
     return queue->between ? queue->head->next : queue->head;
 }
 
-bool queue_empty(queue_t *queue)
-{
-	return queue->head == NULL;
-}
+bool queue_empty(queue_t *queue) { return queue->head == NULL; }

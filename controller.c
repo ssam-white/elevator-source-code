@@ -150,7 +150,8 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
             enqueue_pair(&c->queue, source_floor, destination_floor);
 
             send_message(sd, "CAR %s", c->name);
-            send_message(c->sd, "FLOOR %s", queue_peek_current(&c->queue));
+            send_message(c->sd, "FLOOR %s", queue_get_undisplayed(&c->queue));
+			// send_message(c->sd, "FLOOR %s", source_floor);
             return;
         }
     }
@@ -204,8 +205,7 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
         const char *current_floor = strtok_r(NULL, " ", &saveptr);
         const char *destination_floor = strtok_r(NULL, " ", &saveptr);
 
-		schedule_car(c, status, current_floor, destination_floor);
-
+        schedule_car(c, status, current_floor, destination_floor);
     }
 }
 
@@ -264,22 +264,34 @@ void handle_incoming_messages(controller_t *controller)
     }
 }
 
-void schedule_car(car_connection_t *c, const char *status, const char *current_floor, const char *destination_floor)
+void schedule_car(car_connection_t *c, const char *status, const char *current_floor,
+                  const char *destination_floor)
 {
-	if (strcmp(status, "Between") == 0)
-	{	
-		int current_floor_number = floor_to_int(current_floor);
-		int destination_floor_number = floor_to_int(destination_floor);
-		int difference = current_floor_number - destination_floor_number;
+	dequeue_visited_floors(c, status, current_floor, destination_floor);
+    if (strcmp(status, "Opening") == 0 && !queue_empty(&c->queue))
+    {
+        send_message(c->sd, "FLOOR %s", queue_get_undisplayed(&c->queue));
+    }
+}
 
-		if (difference == 1 || difference == -1)
-		{
-			dequeue(&c->queue);
-		}
+void dequeue_visited_floors(car_connection_t *c, const char *status, const char *current_floor, const char *destination_floor)
+{
+	if (
+		strcmp(status, "Opening") == 0 && 
+		!queue_empty(&c->queue) &&
+		strcmp(queue_peek(&c->queue), current_floor) == 0
+	) {
+		dequeue(&c->queue);
 	}
-	else if (strcmp(status, "Opening") == 0 && !queue_empty(&c->queue))
-	{
-		if (strcmp(c->queue.head->data.floor, destination_floor) == 0) dequeue(&c->queue);
-		send_message(c->sd, "FLOOR %s", c->queue.head->data.floor);
-	}
+	else if (strcmp(status, "Between") == 0 && !queue_empty(&c->queue))
+    {
+        int current_floor_number = floor_to_int(current_floor);
+        int destination_floor_number = floor_to_int(destination_floor);
+        int difference = current_floor_number - destination_floor_number;
+
+        if (difference == 1 || difference == -1)
+        {
+            dequeue(&c->queue);
+        }
+    }
 }

@@ -10,11 +10,11 @@ int main(void)
     queue_init(&q);
 
     enqueue_pair(&q, "3", "6");
-	dequeue(&q);
+    dequeue(&q);
     enqueue_pair(&q, "7", "4");
-	dequeue(&q);
+    dequeue(&q);
     enqueue_pair(&q, "8", "4");
-	enqueue_pair(&q, "6", "5");
+    enqueue_pair(&q, "6", "5");
 
     print_queue(&q);
 

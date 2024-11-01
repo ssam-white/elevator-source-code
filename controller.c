@@ -150,10 +150,15 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
             enqueue_pair(&c->queue, source_floor, destination_floor);
 
             send_message(sd, "CAR %s", c->name);
-			char *next_floor = queue_get_undisplayed(&c->queue);
-			if (next_floor != NULL) {
-				send_message(c->sd, "FLOOR %s", next_floor);
-			}
+            char *next_floor = queue_get_undisplayed(&c->queue);
+            if (next_floor != NULL)
+            {
+                send_message(c->sd, "FLOOR %s", next_floor);
+            }
+            else
+            {
+                printf("Somthing went wrong with the car scheduling\n");
+            }
 
             return;
         }
@@ -166,7 +171,7 @@ void add_car_connection(controller_t *controller, int sd, const char *name,
                         const char *lowest_floor, const char *highest_floor)
 {
     car_connection_t new_car_connection = {sd, strdup(name), strdup(lowest_floor),
-                                           strdup(highest_floor), STOPPED, NULL};
+                                           strdup(highest_floor), NULL};
     controller->car_connections[controller->num_car_connections] = new_car_connection;
     controller->num_car_connections += 1;
 }
@@ -201,6 +206,7 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
     {
         FD_CLR(c->sd, &controller->readfds);
         car_connection_deinit(c);
+		controller->num_car_connections -= 1;
     }
     else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0)
     {
@@ -270,31 +276,28 @@ void handle_incoming_messages(controller_t *controller)
 void schedule_car(car_connection_t *c, const char *status, const char *current_floor,
                   const char *destination_floor)
 {
-	// char *next_floor = queue_get_undisplayed(&c->queue);
-	//
-	if (
-		strcmp(status, "Opening") == 0 &&
-			strcmp(queue_prev_floor(&c->queue), current_floor) == 0 &&
-		!queue_empty(&c->queue)
-	) {
-		char *next_floor = queue_get_undisplayed(&c->queue);
-		if (next_floor != NULL) {
-			send_message(c->sd, "FLOOR %s", next_floor);
-		}
-	}
+    // char *next_floor = queue_get_undisplayed(&c->queue);
+    //
+    if (strcmp(status, "Opening") == 0 && strcmp(queue_prev_floor(&c->queue), current_floor) == 0 &&
+        !queue_empty(&c->queue))
+    {
+        char *next_floor = queue_get_undisplayed(&c->queue);
+        if (next_floor != NULL)
+        {
+            send_message(c->sd, "FLOOR %s", next_floor);
+        }
+    }
 }
 
-void dequeue_visited_floors(car_connection_t *c, const char *status, const char *current_floor, const char *destination_floor)
+void dequeue_visited_floors(car_connection_t *c, const char *status, const char *current_floor,
+                            const char *destination_floor)
 {
-	if (
-		strcmp(status, "Opening") == 0 && 
-		!queue_empty(&c->queue) &&
-		strcmp(queue_peek(&c->queue), current_floor) == 0
-	) {
-		dequeue(&c->queue);
-	}
-	else 
-	if (strcmp(status, "Between") == 0 && !queue_empty(&c->queue))
+    if (strcmp(status, "Opening") == 0 && !queue_empty(&c->queue) &&
+        strcmp(queue_peek(&c->queue), current_floor) == 0)
+    {
+        dequeue(&c->queue);
+    }
+    else if (strcmp(status, "Between") == 0 && !queue_empty(&c->queue))
     {
         int current_floor_number = floor_to_int(current_floor);
         int destination_floor_number = floor_to_int(destination_floor);

@@ -5,19 +5,12 @@
 #include "queue.h"
 #include "tcpip.h"
 
-typedef enum {
-	UP = 1,
-	STOPPED = 0,
-	DOWN = -1,
-} direction_t;
-
 typedef struct car_connection
 {
     int sd;
     char *name;
     char *lowest_floor;
     char *highest_floor;
-	direction_t direction;
     queue_t queue;
 } car_connection_t;
 

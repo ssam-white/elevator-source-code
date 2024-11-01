@@ -11,8 +11,8 @@ typedef enum
 typedef struct
 {
     floor_direction_t direction; // Direction of the floor request
-	bool been_displayed;
-    char *floor;                 // The floor number as a string
+    bool been_displayed;
+    char *floor; // The floor number as a string
 } node_data_t;
 
 typedef struct node

@@ -33,7 +33,7 @@ void node_init(node_t **node, const char *floor, floor_direction_t direction, no
     (*node)->data.floor = strdup(floor);
 
     (*node)->data.direction = direction;
-	(*node)->data.been_displayed = false;
+    (*node)->data.been_displayed = false;
     (*node)->next = next;
 }
 
@@ -57,53 +57,65 @@ void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
     int floor_number = floor_to_int(floor);
 
     // Edge case: If the queue is empty, add the new node as the head
-    if (queue->head == NULL) {
+    if (queue->head == NULL)
+    {
         queue->head = new_node;
         return;
     }
 
     // Traverse the queue to find the correct insertion point
-    while (current != NULL) {
+    while (current != NULL)
+    {
         int current_floor_number = floor_to_int(current->data.floor);
 
-        // Check if there's an existing node with the same floor and direction that hasn't been displayed
-        if (
-			current->data.direction == direction &&
-			current_floor_number == floor_number &&
-			current->data.been_displayed == false
-		) {
+        // Check if there's an existing node with the same floor and direction that hasn't been
+        // displayed
+        if (current->data.direction == direction && current_floor_number == floor_number &&
+            current->data.been_displayed == false)
+        {
             // Duplicate found, so no need to insert
             return;
         }
 
         // In the UP block, maintain ascending order
-        if (direction == UP_FLOOR && current->data.direction == UP_FLOOR) {
-            if (floor_number < current_floor_number) {
+        if (direction == UP_FLOOR && current->data.direction == UP_FLOOR)
+        {
+            if (floor_number < current_floor_number)
+            {
                 // Insert the new node before the current node
                 new_node->next = current;
-                if (prev == NULL) {
+                if (prev == NULL)
+                {
                     queue->head = new_node;
-                } else {
+                }
+                else
+                {
                     prev->next = new_node;
                 }
                 return;
             }
         }
         // In the DOWN block, maintain descending order
-        else if (direction == DOWN_FLOOR && current->data.direction == DOWN_FLOOR) {
-            if (floor_number > current_floor_number) {
+        else if (direction == DOWN_FLOOR && current->data.direction == DOWN_FLOOR)
+        {
+            if (floor_number > current_floor_number)
+            {
                 // Insert the new node before the current node
                 new_node->next = current;
-                if (prev == NULL) {
+                if (prev == NULL)
+                {
                     queue->head = new_node;
-                } else {
+                }
+                else
+                {
                     prev->next = new_node;
                 }
                 return;
             }
         }
         // If we hit the boundary between UP and DOWN, insert at this boundary
-        else if (current->data.direction != direction && prev && prev->data.direction == direction) {
+        else if (current->data.direction != direction && prev && prev->data.direction == direction)
+        {
             new_node->next = current;
             prev->next = new_node;
             return;
@@ -115,9 +127,12 @@ void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
     }
 
     // If we reached the end, add the new node at the end
-    if (prev) {
+    if (prev)
+    {
         prev->next = new_node;
-    } else {
+    }
+    else
+    {
         queue->head = new_node;
     }
 }
@@ -137,11 +152,14 @@ void print_queue(queue_t *queue)
     while (current != NULL)
     {
         const char *direction = current->data.direction == UP_FLOOR ? "U" : "D";
-		if (current->data.been_displayed) {
-			printf("(%s%s) ", direction, current->data.floor);
-		} else {
-			printf("%s%s ", direction, current->data.floor);
-		}
+        if (current->data.been_displayed)
+        {
+            printf("(%s%s) ", direction, current->data.floor);
+        }
+        else
+        {
+            printf("%s%s ", direction, current->data.floor);
+        }
         current = current->next;
     }
     printf("\n");
@@ -159,26 +177,28 @@ void enqueue_pair(queue_t *queue, const char *source_floor, const char *destinat
 
 char *queue_peek(queue_t *queue)
 {
-	if (queue_empty(queue))
-		return NULL;
-	else
-	{
-		return queue->head->data.floor;
-	}
+    if (queue_empty(queue))
+        return NULL;
+    else
+    {
+        return queue->head->data.floor;
+    }
 }
 
 char *queue_get_undisplayed(queue_t *queue)
 {
-	if (queue_empty(queue))
-		return NULL;
-	else
-	{
-		node_t *current = queue->head;
-		while (current->data.been_displayed && current->next != NULL) current = current->next;
-		if (current->data.been_displayed) return NULL;
-		current->data.been_displayed = true;
-		return current->data.floor;
-	}
+    if (queue_empty(queue))
+        return NULL;
+    else
+    {
+        node_t *current = queue->head;
+        while (current->data.been_displayed && current->next != NULL)
+            current = current->next;
+        if (current->data.been_displayed)
+            return NULL;
+        current->data.been_displayed = true;
+        return current->data.floor;
+    }
 }
 
 node_t *queue_get_current(queue_t *queue)
@@ -188,28 +208,27 @@ node_t *queue_get_current(queue_t *queue)
     return queue->between ? queue->head->next : queue->head;
 }
 
-bool queue_empty(queue_t *queue) { 
-	return queue->head == NULL; 
-}
+bool queue_empty(queue_t *queue) { return queue->head == NULL; }
 
 bool node_eql(const node_t *n1, const node_t *n2)
 {
-	bool floors_eql = strcmp(n1->data.floor, n2->data.floor) == 0;
-	bool directions_eql = n1->data.direction == n2->data.direction;
-	return floors_eql && directions_eql;
+    bool floors_eql = strcmp(n1->data.floor, n2->data.floor) == 0;
+    bool directions_eql = n1->data.direction == n2->data.direction;
+    return floors_eql && directions_eql;
 }
 
 char *queue_prev_floor(queue_t *queue)
 {
-	if (queue_empty(queue))
-		return NULL;
-	else
-	{
-		node_t *current = queue->head;
-    while (current->next != NULL && current->next->data.been_displayed) {
-        current = current->next;
+    if (queue_empty(queue))
+        return NULL;
+    else
+    {
+        node_t *current = queue->head;
+        while (current->next != NULL && current->next->data.been_displayed)
+        {
+            current = current->next;
+        }
+        current->data.been_displayed = true;
+        return current->data.floor;
     }
-		current->data.been_displayed = true;
-		return current->data.floor;
-	}
 }

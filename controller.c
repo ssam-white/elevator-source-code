@@ -14,8 +14,8 @@
  * select() system call to efficiently manage incoming messages from clients and
  * elevator cars.
  *
- * Perhaps a multi-threaded implementation could be more effective but the low
- * testing requirements and the limited number of elevator shafts in typical
+ * Perhaps a multi-threaded implementation could be more effective but the
+ * specification requirements and the limited number of elevator shafts in typical
  * buildings make a single-threaded option robust and maintainable while
  * still being efficient.
  */

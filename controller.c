@@ -200,7 +200,6 @@ void handle_server_message(controller_t *controller, char *message, int client_s
 
 void handle_car_connection_message(controller_t *controller, car_connection_t *c, char *message)
 {
-    printf("%s\n", message);
     char *saveptr;
 
     if (strcmp(message, "EMERGENCY") == 0 || strcmp(message, "INDIVIDUAL SERVICE") == 0)

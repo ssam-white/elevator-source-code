@@ -170,8 +170,8 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
 void add_car_connection(controller_t *controller, int sd, const char *name,
                         const char *lowest_floor, const char *highest_floor)
 {
-    car_connection_t new_car_connection = {sd, strdup(name), strdup(lowest_floor),
-                                           strdup(highest_floor), NULL};
+    car_connection_t new_car_connection = {
+        sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), {NULL}};
     controller->car_connections[controller->num_car_connections] = new_car_connection;
     controller->num_car_connections += 1;
 }
@@ -200,13 +200,14 @@ void handle_server_message(controller_t *controller, char *message, int client_s
 
 void handle_car_connection_message(controller_t *controller, car_connection_t *c, char *message)
 {
+    printf("%s\n", message);
     char *saveptr;
 
     if (strcmp(message, "EMERGENCY") == 0 || strcmp(message, "INDIVIDUAL SERVICE") == 0)
     {
         FD_CLR(c->sd, &controller->readfds);
         car_connection_deinit(c);
-		controller->num_car_connections -= 1;
+        controller->num_car_connections -= 1;
     }
     else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0)
     {
@@ -276,7 +277,6 @@ void handle_incoming_messages(controller_t *controller)
 void schedule_car(car_connection_t *c, const char *status, const char *current_floor,
                   const char *destination_floor)
 {
-	dequeue_visited_floors(c, status, current_floor, destination_floor);
     if (strcmp(status, "Opening") == 0 && strcmp(queue_prev_floor(&c->queue), current_floor) == 0 &&
         !queue_empty(&c->queue))
     {

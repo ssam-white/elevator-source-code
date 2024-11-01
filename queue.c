@@ -74,6 +74,7 @@ void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
             current->data.been_displayed == false)
         {
             // Duplicate found, so no need to insert
+			node_deinit(&new_node);
             return;
         }
 
@@ -202,7 +203,6 @@ char *queue_get_undisplayed(queue_t *queue)
 }
 
 bool queue_empty(queue_t *queue) { return queue->head == NULL; }
-
 
 char *queue_prev_floor(queue_t *queue)
 {

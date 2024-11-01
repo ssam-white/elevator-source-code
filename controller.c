@@ -213,9 +213,8 @@ void handle_car_connection_message(controller_t *controller, car_connection_t *c
     {
         const char *status = strtok_r(NULL, " ", &saveptr);
         const char *current_floor = strtok_r(NULL, " ", &saveptr);
-        const char *destination_floor = strtok_r(NULL, " ", &saveptr);
 
-        schedule_car(c, status, current_floor, destination_floor);
+        schedule_car(c, status, current_floor);
     }
 }
 
@@ -274,8 +273,7 @@ void handle_incoming_messages(controller_t *controller)
     }
 }
 
-void schedule_car(car_connection_t *c, const char *status, const char *current_floor,
-                  const char *destination_floor)
+void schedule_car(car_connection_t *c, const char *status, const char *current_floor)
 {
     if (strcmp(status, "Opening") == 0 && strcmp(queue_prev_floor(&c->queue), current_floor) == 0 &&
         !queue_empty(&c->queue))

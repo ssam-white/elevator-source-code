@@ -35,5 +35,5 @@ void add_car_connection(controller_t *, int, const char *, const char *, const c
 void handle_server_message(controller_t *, char *, int);
 void handle_car_connection_message(controller_t *, car_connection_t *, char *);
 void handle_incoming_messages(controller_t *);
-void schedule_car(car_connection_t *, const char *, const char *, const char *);
+void schedule_car(car_connection_t *, const char *, const char *);
 void dequeue_visited_floors(car_connection_t *, const char *, const char *, const char *);

@@ -150,10 +150,11 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
             enqueue_pair(&c->queue, source_floor, destination_floor);
 
             send_message(sd, "CAR %s", c->name);
-			char *f = queue_get_undisplayed(&c->queue);
-			// print_queue(&c->queue);
-			// printf("%s %s\n", source_floor, destination_floor);
-            send_message(c->sd, "FLOOR %s", f);
+			char *next_floor = queue_get_undisplayed(&c->queue);
+			if (next_floor != NULL) {
+				send_message(c->sd, "FLOOR %s", next_floor);
+			}
+
             return;
         }
     }
@@ -271,14 +272,15 @@ void schedule_car(car_connection_t *c, const char *status, const char *current_f
 {
 	// char *next_floor = queue_get_undisplayed(&c->queue);
 	//
-	// // dequeue_visited_floors(c, status, current_floor, destination_floor);
 	if (
 		strcmp(status, "Opening") == 0 &&
-		!queue_empty(&c->queue) &&
-		strcmp(queue_prev_floor(&c->queue), current_floor) == 0
+			strcmp(queue_prev_floor(&c->queue), current_floor) == 0 &&
+		!queue_empty(&c->queue)
 	) {
-		// printf("recv: %s", next_floor);
-		send_message(c->sd, "FLOR %s", queue_get_undisplayed(&c->queue));
+		char *next_floor = queue_get_undisplayed(&c->queue);
+		if (next_floor != NULL) {
+			send_message(c->sd, "FLOOR %s", next_floor);
+		}
 	}
 }
 

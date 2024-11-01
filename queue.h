@@ -37,6 +37,7 @@ void dequeue(queue_t *);
 void print_queue(queue_t *);
 void enqueue_pair(queue_t *, const char *, const char *);
 char *queue_peek(queue_t *);
+node_t *queue_peek_undisplayed(queue_t *);
 char *queue_get_undisplayed(queue_t *);
 node_t *queue_get_current(queue_t *);
 bool queue_empty(queue_t *);

@@ -66,8 +66,12 @@ void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
     while (current != NULL) {
         int current_floor_number = floor_to_int(current->data.floor);
 
-        // Check if there's an existing node with the same floor and direction
-        if (current->data.direction == direction && current_floor_number == floor_number) {
+        // Check if there's an existing node with the same floor and direction that hasn't been displayed
+        if (
+			current->data.direction == direction &&
+			current_floor_number == floor_number &&
+			current->data.been_displayed == false
+		) {
             // Duplicate found, so no need to insert
             return;
         }
@@ -171,6 +175,7 @@ char *queue_get_undisplayed(queue_t *queue)
 	{
 		node_t *current = queue->head;
 		while (current->data.been_displayed && current->next != NULL) current = current->next;
+		if (current->data.been_displayed) return NULL;
 		current->data.been_displayed = true;
 		return current->data.floor;
 	}
@@ -201,7 +206,9 @@ char *queue_prev_floor(queue_t *queue)
 	else
 	{
 		node_t *current = queue->head;
-		while (current->next->data.been_displayed && current->next != NULL) current = current->next;
+    while (current->next != NULL && current->next->data.been_displayed) {
+        current = current->next;
+    }
 		current->data.been_displayed = true;
 		return current->data.floor;
 	}

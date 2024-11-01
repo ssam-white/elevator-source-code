@@ -151,7 +151,7 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
 
             send_message(sd, "CAR %s", c->name);
             send_message(c->sd, "FLOOR %s", queue_get_undisplayed(&c->queue));
-			// send_message(c->sd, "FLOOR %s", source_floor);
+			print_queue(&c->queue);
             return;
         }
     }

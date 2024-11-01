@@ -9,7 +9,8 @@ int main(void)
     queue_t q;
     queue_init(&q);
 
-    // enqueue_pair(&q, "3", "6");
+    enqueue_pair(&q, "3", "6");
+	dequeue(&q);
     enqueue_pair(&q, "7", "4");
     enqueue_pair(&q, "8", "4");
 

@@ -49,26 +49,72 @@ void node_deinit(node_t **node)
 
 void enqueue(queue_t *queue, const char *floor, floor_direction_t direction)
 {
-    if (queue->head == NULL)
-    {
-        node_t *new_node;
-        node_init(&new_node, floor, direction, NULL);
-        queue->head = new_node;
-    }
-    else
-    {
-        node_t *current_node = queue->head;
-        while (current_node->next != NULL)
-        {
-            if (strcmp(current_node->data.floor, floor) == 0 &&
-                current_node->data.direction == direction)
-                return;
+    node_t *current = queue->head;
+    node_t *prev = NULL;
+    node_t *new_node = NULL;
+    node_init(&new_node, floor, direction, NULL);
 
-            current_node = current_node->next;
+    int floor_number = floor_to_int(floor);
+
+    // Edge case: If the queue is empty, add the new node as the head
+    if (queue->head == NULL) {
+        queue->head = new_node;
+        return;
+    }
+
+    // Traverse the queue to find the correct insertion point
+    while (current != NULL) {
+        int current_floor_number = floor_to_int(current->data.floor);
+
+        // Check if there's an existing node with the same floor and direction
+        if (current->data.direction == direction && current_floor_number == floor_number) {
+            // Duplicate found, so no need to insert
+            return;
         }
-        node_t *new_node;
-        node_init(&new_node, floor, direction, NULL);
-        current_node->next = new_node;
+
+        // In the UP block, maintain ascending order
+        if (direction == UP_FLOOR && current->data.direction == UP_FLOOR) {
+            if (floor_number < current_floor_number) {
+                // Insert the new node before the current node
+                new_node->next = current;
+                if (prev == NULL) {
+                    queue->head = new_node;
+                } else {
+                    prev->next = new_node;
+                }
+                return;
+            }
+        }
+        // In the DOWN block, maintain descending order
+        else if (direction == DOWN_FLOOR && current->data.direction == DOWN_FLOOR) {
+            if (floor_number > current_floor_number) {
+                // Insert the new node before the current node
+                new_node->next = current;
+                if (prev == NULL) {
+                    queue->head = new_node;
+                } else {
+                    prev->next = new_node;
+                }
+                return;
+            }
+        }
+        // If we hit the boundary between UP and DOWN, insert at this boundary
+        else if (current->data.direction != direction && prev && prev->data.direction == direction) {
+            new_node->next = current;
+            prev->next = new_node;
+            return;
+        }
+
+        // Move to the next node
+        prev = current;
+        current = current->next;
+    }
+
+    // If we reached the end, add the new node at the end
+    if (prev) {
+        prev->next = new_node;
+    } else {
+        queue->head = new_node;
     }
 }
 
@@ -133,4 +179,13 @@ node_t *queue_get_current(queue_t *queue)
     return queue->between ? queue->head->next : queue->head;
 }
 
-bool queue_empty(queue_t *queue) { return queue->head == NULL; }
+bool queue_empty(queue_t *queue) { 
+	return queue->head == NULL; 
+}
+
+bool node_eql(const node_t *n1, const node_t *n2)
+{
+	bool floors_eql = strcmp(n1->data.floor, n2->data.floor) == 0;
+	bool directions_eql = n1->data.direction == n2->data.direction;
+	return floors_eql && directions_eql;
+}

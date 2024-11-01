@@ -19,8 +19,6 @@ int main(int argc, char *argv[])
     if (argc != 2)
     {
         int result = write(1, "Incorrect number of command line arguments\n", 43);
-        if (result < 0)
-            return 1;
         return 1;
     }
 

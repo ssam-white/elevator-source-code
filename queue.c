@@ -133,7 +133,11 @@ void print_queue(queue_t *queue)
     while (current != NULL)
     {
         const char *direction = current->data.direction == UP_FLOOR ? "U" : "D";
-        printf("%s%s ", direction, current->data.floor);
+		if (current->data.been_displayed) {
+			printf("(%s%s) ", direction, current->data.floor);
+		} else {
+			printf("%s%s ", direction, current->data.floor);
+		}
         current = current->next;
     }
     printf("\n");
@@ -166,7 +170,7 @@ char *queue_get_undisplayed(queue_t *queue)
 	else
 	{
 		node_t *current = queue->head;
-		while (current->data.been_displayed) current = current->next;
+		while (current->data.been_displayed && current->next != NULL) current = current->next;
 		current->data.been_displayed = true;
 		return current->data.floor;
 	}
@@ -188,4 +192,17 @@ bool node_eql(const node_t *n1, const node_t *n2)
 	bool floors_eql = strcmp(n1->data.floor, n2->data.floor) == 0;
 	bool directions_eql = n1->data.direction == n2->data.direction;
 	return floors_eql && directions_eql;
+}
+
+char *queue_prev_floor(queue_t *queue)
+{
+	if (queue_empty(queue))
+		return NULL;
+	else
+	{
+		node_t *current = queue->head;
+		while (current->next->data.been_displayed && current->next != NULL) current = current->next;
+		current->data.been_displayed = true;
+		return current->data.floor;
+	}
 }

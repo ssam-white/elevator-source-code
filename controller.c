@@ -276,8 +276,7 @@ void handle_incoming_messages(controller_t *controller)
 void schedule_car(car_connection_t *c, const char *status, const char *current_floor,
                   const char *destination_floor)
 {
-    // char *next_floor = queue_get_undisplayed(&c->queue);
-    //
+	dequeue_visited_floors(c, status, current_floor, destination_floor);
     if (strcmp(status, "Opening") == 0 && strcmp(queue_prev_floor(&c->queue), current_floor) == 0 &&
         !queue_empty(&c->queue))
     {

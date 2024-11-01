@@ -201,21 +201,8 @@ char *queue_get_undisplayed(queue_t *queue)
     }
 }
 
-node_t *queue_get_current(queue_t *queue)
-{
-    if (queue->head == NULL)
-        return NULL;
-    return queue->between ? queue->head->next : queue->head;
-}
-
 bool queue_empty(queue_t *queue) { return queue->head == NULL; }
 
-bool node_eql(const node_t *n1, const node_t *n2)
-{
-    bool floors_eql = strcmp(n1->data.floor, n2->data.floor) == 0;
-    bool directions_eql = n1->data.direction == n2->data.direction;
-    return floors_eql && directions_eql;
-}
 
 char *queue_prev_floor(queue_t *queue)
 {

@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void call_pad_init(call_pad_t *call_pad, const char *source_floor, const char *destination_floor)
+void call_pad_init(call_pad_t *call_pad, const char *source_floor,
+                   const char *destination_floor)
 {
     call_pad->source_floor = source_floor;
     call_pad->destination_floor = destination_floor;
@@ -62,7 +63,8 @@ void call_pad_deinit(call_pad_t *call_pad)
 
 void handle_call(call_pad_t *call_pad)
 {
-    send_message(call_pad->sock, "CALL %s %s", call_pad->source_floor, call_pad->destination_floor);
+    send_message(call_pad->sock, "CALL %s %s", call_pad->source_floor,
+                 call_pad->destination_floor);
     char *response = receive_msg(call_pad->sock);
 
     char *saveptr;

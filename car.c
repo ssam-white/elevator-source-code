@@ -25,10 +25,11 @@ int main(int argc, char *argv[])
     // Check if the correct number of command line arguments was given
     if (argc != 5)
     {
-        fprintf(stderr,
-                "Error: Incorrect number of command line arguments. Expected 4, "
-                "got %d.\n",
-                argc - 1);
+        fprintf(
+            stderr,
+            "Error: Incorrect number of command line arguments. Expected 4, "
+            "got %d.\n",
+            argc - 1);
         return 1;
     }
 
@@ -56,7 +57,8 @@ int main(int argc, char *argv[])
         car.connected_to_controller = true;
         pthread_create(&car.receiver_thread, NULL, handle_receiver, &car);
         pthread_create(&car.connection_thread, NULL, handle_connection, &car);
-        send_message(car.server_fd, "CAR %s %s %s", car.name, car.lowest_floor, car.highest_floor);
+        send_message(car.server_fd, "CAR %s %s %s", car.name, car.lowest_floor,
+                     car.highest_floor);
         signal_controller(&car);
     }
 
@@ -132,17 +134,20 @@ void *handle_level(void *arg)
         if (cdcmp_floors(car->state) != 0)
         {
             pthread_mutex_lock(&car->state->mutex);
-            int bounds_check = bounds_check_floor(car, car->state->destination_floor);
+            int bounds_check =
+                bounds_check_floor(car, car->state->destination_floor);
             pthread_mutex_unlock(&car->state->mutex);
 
             if (bounds_check == -1)
             {
-                set_string(car->state, car->state->destination_floor, car->lowest_floor);
+                set_string(car->state, car->state->destination_floor,
+                           car->lowest_floor);
                 continue;
             }
             else if (bounds_check == 1)
             {
-                set_string(car->state, car->state->destination_floor, car->highest_floor);
+                set_string(car->state, car->state->destination_floor,
+                           car->highest_floor);
                 continue;
             }
 
@@ -191,8 +196,8 @@ void *handle_level(void *arg)
     }
 }
 
-void car_init(car_t *car, const char *name, const char *lowest_floor, const char *highest_floor,
-              const char *delay)
+void car_init(car_t *car, const char *name, const char *lowest_floor,
+              const char *highest_floor, const char *delay)
 {
     car->name = name;
     car->shm_name = get_shm_name(car->name);
@@ -251,7 +256,8 @@ int usleep_cond(car_t *car)
     while (true)
     {
         pthread_mutex_lock(&car->state->mutex);
-        int result = pthread_cond_timedwait(&car->state->cond, &car->state->mutex, &ts);
+        int result =
+            pthread_cond_timedwait(&car->state->cond, &car->state->mutex, &ts);
         pthread_mutex_unlock(&car->state->mutex);
 
         // Check if a door button was pressed
@@ -353,7 +359,8 @@ void *handle_receiver(void *arg)
             }
             else
             {
-                set_string(car->state, car->state->destination_floor, message + 6);
+                set_string(car->state, car->state->destination_floor,
+                           message + 6);
             }
         }
 
@@ -377,8 +384,8 @@ void *handle_connection(void *arg)
 
 void signal_controller(car_t *car)
 {
-    send_message(car->server_fd, "STATUS %s %s %s", car->state->status, car->state->current_floor,
-                 car->state->destination_floor);
+    send_message(car->server_fd, "STATUS %s %s %s", car->state->status,
+                 car->state->current_floor, car->state->destination_floor);
 }
 
 void sleep_delay(const car_t *car)

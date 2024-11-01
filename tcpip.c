@@ -5,9 +5,52 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "tcpip.h"
+
+void server_init(int *fd, struct sockaddr_in *sock)
+{
+    memset(sock, 0, sizeof(*sock));
+    sock->sin_family = AF_INET;
+    sock->sin_port = htons(3000);
+    sock->sin_addr.s_addr = htonl(INADDR_ANY);
+
+    // Create the socket
+    *fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (*fd == -1)
+    {
+        perror("socket()");
+        exit(1);
+    }
+
+    // Set socket options to allow reuse of address
+    int opt_enable = 1;
+    if (setsockopt(*fd, SOL_SOCKET, SO_REUSEADDR, &opt_enable,
+                   sizeof(opt_enable)) == -1)
+    {
+        perror("setsockopt()");
+        close(*fd); // Close the socket before exiting
+        exit(1);
+    }
+
+    // Bind the socket to the address and port
+    if (bind(*fd, (const struct sockaddr *)sock, sizeof(*sock)) == -1)
+    {
+        perror("bind()");
+        close(*fd); // Close the socket before exiting
+        exit(1);
+    }
+
+    // Start listening for incoming connections
+    if (listen(*fd, 10) == -1)
+    {
+        perror("listen()");
+        close(*fd); // Close the socket before exiting
+        exit(1);
+    }
+}
 
 bool connect_to_controller(int *sd, struct sockaddr_in *sockaddr)
 {

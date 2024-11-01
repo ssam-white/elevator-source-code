@@ -29,7 +29,8 @@ int main(int argc, char *argv[])
     icontroller_init(&icontroller, argv[1], argv[2]);
 
     // attempt to connect to the car shared emory object
-    if (!connect_to_car(&icontroller.state, icontroller.shm_name, &icontroller.fd))
+    if (!connect_to_car(&icontroller.state, icontroller.shm_name,
+                        &icontroller.fd))
     {
         printf("Unable to access car %s.\n", icontroller.car_name);
         return 1;
@@ -58,7 +59,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void icontroller_init(icontroller_t *icontroller, const char *car_name, const char *operation)
+void icontroller_init(icontroller_t *icontroller, const char *car_name,
+                      const char *operation)
 {
     icontroller->car_name = car_name;
     icontroller->operation = operation;

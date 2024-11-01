@@ -13,7 +13,7 @@
  */
 typedef enum
 {
-    UP_FLOOR = 1,  // Indicates a request to go up to a higher floor
+    UP_FLOOR = 1,   // Indicates a request to go up to a higher floor
     DOWN_FLOOR = 0, // Indicates a request to go down to a lower floor
 } floor_direction_t;
 
@@ -23,8 +23,9 @@ typedef enum
 typedef struct
 {
     floor_direction_t direction; // Direction of the floor request (up or down)
-    bool been_displayed;          // Flag indicating whether the request has been displayed
-    char *floor;                  // The floor number represented as a string
+    bool been_displayed;         // Flag indicating whether the request has been
+                                 // displayed
+    char *floor;                 // The floor number represented as a string
 } node_data_t;
 
 /*
@@ -32,8 +33,8 @@ typedef struct
  */
 typedef struct node
 {
-    node_data_t data;            // Data contained in the node
-    struct node *next;           // Pointer to the next node in the queue
+    node_data_t data;  // Data contained in the node
+    struct node *next; // Pointer to the next node in the queue
 } node_t;
 
 /*
@@ -41,7 +42,7 @@ typedef struct node
  */
 typedef struct
 {
-    node_t *head;                // Pointer to the head node of the queue
+    node_t *head; // Pointer to the head node of the queue
 } queue_t;
 
 // Function prototypes for queue operations

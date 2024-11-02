@@ -90,7 +90,7 @@ void call_pad_deinit(call_pad_t *call_pad)
  * Sends a message with the source and destination floors, then waits for a
  * response. Parses the response to check the status of the call request.
  */
-void handle_call(call_pad_t *call_pad)
+void handle_call(const call_pad_t *call_pad)
 {
     /* Send the call request and wait for a response from the controller. */
     send_message(call_pad->sock, "CALL %s %s", call_pad->source_floor,

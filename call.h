@@ -29,4 +29,4 @@ void call_pad_init(call_pad_t *, const char *, const char *);
 // Deinitializes the call pad and frees any allocated resources
 void call_pad_deinit(call_pad_t *);
 // Handles the call request from the call pad
-void handle_call(call_pad_t *);
+void handle_call(const call_pad_t *);

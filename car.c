@@ -55,10 +55,10 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        if (!car.connected_to_controller)
+        if (!car.connected_to_controller && connect_to_controller(&car.server_sd, &car.server_addr))
         {
-            if (connect_to_controller(&car.server_sd, &car.server_addr))
-            {
+            // if ()
+            // {
                 car.connected_to_controller = true;
                 send_message(car.server_sd, "car %s %s %s", car.name,
                              car.lowest_floor, car.highest_floor);
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
                 pthread_create(&car.updater_thread, NULL, handle_updater, &car);
                 pthread_create(&car.receiver_thread, NULL, handle_receiver,
                                &car);
-            }
+            // }
         }
         sleep_delay(&car);
     }

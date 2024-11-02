@@ -41,7 +41,7 @@ void car_connection_init(car_connection_t *);   // Initialize a car connection
 void car_connection_deinit(car_connection_t *); // Deinitialize a car connection
 
 // Add a car connection
-void add_car_connection(controller_t *, int, const char *, const char *,
+void add_car_connection(controller_t *, int, const char *, const char *, const char *);
 // Handle a call to the controller
 void handle_call(controller_t *, int, const char *, const char *);
 // Handle messages from the server

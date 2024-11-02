@@ -104,14 +104,6 @@ bool create_shared_mem(car_shared_mem **shm, int *fd, const char *name)
     return true;
 }
 
-void set_flag(car_shared_mem *state, uint8_t *flag, uint8_t value)
-{
-    pthread_mutex_lock(&state->mutex);
-    *flag = value;
-    pthread_cond_broadcast(&state->cond);
-    pthread_mutex_unlock(&state->mutex);
-}
-
 void set_status(car_shared_mem *state, const char *status)
 {
     WITH_LOCK_AND_BROADCAST(state, strcpy(state->status, status));
@@ -124,17 +116,17 @@ void set_destination_floor(car_shared_mem *state, const char *floor)
 
 void set_open_button(car_shared_mem *state, uint8_t value)
 {
-    set_flag(state, &state->open_button, value);
+    WITH_LOCK_AND_BROADCAST(state, state->open_button = value);
 }
 
 void set_close_button(car_shared_mem *state, uint8_t value)
 {
-    set_flag(state, &state->close_button, value);
+    WITH_LOCK_AND_BROADCAST(state, state->close_button = value);
 }
 
 void set_emergency_stop(car_shared_mem *state, uint8_t value)
 {
-    set_flag(state, &state->emergency_stop, value);
+    WITH_LOCK_AND_BROADCAST(state, state->emergency_stop = value);
 }
 
 void set_service_mode(car_shared_mem *state, uint8_t value)
@@ -149,26 +141,6 @@ void set_service_mode(car_shared_mem *state, uint8_t value)
     pthread_mutex_unlock(&state->mutex);
 }
 
-void set_emergency_mode(car_shared_mem *state, uint8_t value)
-{
-    pthread_mutex_lock(&state->mutex);
-    state->emergency_mode = value;
-    pthread_cond_broadcast(&state->cond);
-    pthread_mutex_unlock(&state->mutex);
-}
-
-void set_string(car_shared_mem *state, char *destination, const char *source,
-                ...)
-{
-    va_list args;
-
-    va_start(args, source);
-    pthread_mutex_lock(&state->mutex);
-    vsprintf(destination, source, args);
-    pthread_cond_broadcast(&state->cond);
-    pthread_mutex_unlock(&state->mutex);
-    va_end(args);
-}
 
 bool open_button_is(car_shared_mem *state, uint8_t value)
 {
@@ -198,31 +170,6 @@ bool service_mode_is(car_shared_mem *state, uint8_t value)
 {
     pthread_mutex_lock(&state->mutex);
     bool result = state->individual_service_mode == value;
-    pthread_mutex_unlock(&state->mutex);
-    return result;
-}
-
-bool obstruction_is(car_shared_mem *state, uint8_t value)
-{
-    pthread_mutex_lock(&state->mutex);
-    bool result = state->door_obstruction == value;
-    pthread_mutex_unlock(&state->mutex);
-    return result;
-}
-
-bool emergency_stop_is(car_shared_mem *state, uint8_t value)
-{
-    pthread_mutex_lock(&state->mutex);
-    bool result = state->emergency_stop == value;
-    pthread_mutex_unlock(&state->mutex);
-    return result;
-}
-
-bool overload_is(car_shared_mem *state, uint8_t value)
-{
-
-    pthread_mutex_lock(&state->mutex);
-    bool result = state->overload == value;
     pthread_mutex_unlock(&state->mutex);
     return result;
 }

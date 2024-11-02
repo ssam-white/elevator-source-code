@@ -23,27 +23,21 @@ typedef struct
 
 void init_shm(car_shared_mem *);
 void reset_shm(car_shared_mem *);
-bool create_shared_mem(car_shared_mem **, int *, const char *);
 
+bool create_shared_mem(car_shared_mem **, int *, const char *);
 bool connect_to_car(car_shared_mem **, const char *, int *);
 
-void set_flag(car_shared_mem *, uint8_t *, uint8_t);
 void set_status(car_shared_mem *, const char *);
 void set_destination_floor(car_shared_mem *, const char *);
 void set_open_button(car_shared_mem *, uint8_t);
 void set_close_button(car_shared_mem *, uint8_t);
 void set_emergency_stop(car_shared_mem *, uint8_t);
 void set_service_mode(car_shared_mem *, uint8_t);
-void set_emergency_mode(car_shared_mem *, uint8_t);
 
-void set_string(car_shared_mem *, char *, const char *, ...);
 
 bool open_button_is(car_shared_mem *, uint8_t);
 bool close_button_is(car_shared_mem *, uint8_t);
 bool status_is(car_shared_mem *, const char *);
 bool service_mode_is(car_shared_mem *, uint8_t);
-bool obstruction_is(car_shared_mem *, uint8_t);
-bool emergency_stop_is(car_shared_mem *, uint8_t);
-bool overload_is(car_shared_mem *, uint8_t);
 
 char *get_shm_name(const char *);

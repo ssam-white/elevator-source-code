@@ -36,6 +36,7 @@ void open_doors(car_t *);
 void close_doors(car_t *);
 
 int usleep_cond(car_t *);
+int wait_on_floor_and_status(car_t *);
 int timedwait_on_floor_and_status(car_t *);
 
 int bounds_check_floor(const car_t *, const char *);

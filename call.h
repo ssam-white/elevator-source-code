@@ -1,8 +1,8 @@
 #pragma once
 
+#include <netinet/in.h> // Include for struct sockaddr_in
 #include <stdbool.h>
 #include <unistd.h>
-#include <netinet/in.h> // Include for struct sockaddr_in
 
 /*
  * This header file defines the `call_pad_t` structure, which contains fields
@@ -20,7 +20,8 @@ typedef struct
     const char *source_floor;      // The floor from which the call is made
     const char *destination_floor; // The desired destination floor
     int sock; // Socket for communication with the controller
-    struct sockaddr_in server_addr; // Server address for the elevator controller
+    struct sockaddr_in
+        server_addr; // Server address for the elevator controller
 } call_pad_t;
 
 // Initializes the call pad with specified source and destination floors

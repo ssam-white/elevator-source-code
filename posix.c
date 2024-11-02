@@ -13,6 +13,15 @@
 
 #include "posix.h"
 
+#define WITH_LOCK_AND_BROADCAST(state, code)                                   \
+    do                                                                         \
+    {                                                                          \
+        pthread_mutex_lock(&(state)->mutex);                                   \
+        code;                                                                  \
+        pthread_cond_broadcast(&(state)->cond);                                \
+        pthread_mutex_unlock(&(state)->mutex);                                 \
+    } while (0)
+
 void reset_shm(car_shared_mem *s)
 {
     pthread_mutex_lock(&s->mutex);
@@ -105,7 +114,12 @@ void set_flag(car_shared_mem *state, uint8_t *flag, uint8_t value)
 
 void set_status(car_shared_mem *state, const char *status)
 {
-    set_string(state, state->status, status);
+    WITH_LOCK_AND_BROADCAST(state, strcpy(state->status, status));
+}
+
+void set_destination_floor(car_shared_mem *state, const char *floor)
+{
+    WITH_LOCK_AND_BROADCAST(state, strcpy(state->destination_floor, floor));
 }
 
 void set_open_button(car_shared_mem *state, uint8_t value)

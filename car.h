@@ -8,7 +8,7 @@
 
 typedef struct
 {
-	pthread_mutex_t server_mutex;
+    pthread_mutex_t server_mutex;
     int server_sd;
     struct sockaddr_in server_addr;
     const char *name;
@@ -19,8 +19,7 @@ typedef struct
     pthread_t door_thread;
     pthread_t level_thread;
     pthread_t receiver_thread;
-	pthread_t updater_thread;
-    pthread_t connection_thread;
+    pthread_t updater_thread;
     bool connected_to_controller;
     int fd;
     car_shared_mem *state;

@@ -1,4 +1,5 @@
 #include <errno.h> // Include this for ETIMEDOUT
+#include <pthread.h>
 #include <fcntl.h>
 #include <semaphore.h>
 #include <signal.h>
@@ -51,57 +52,44 @@ int main(int argc, char *argv[])
 
     pthread_create(&car.door_thread, NULL, handle_doors, &car);
     pthread_create(&car.level_thread, NULL, handle_level, &car);
+	// pthread_create(&car.connection_thread, NULL, handle_connection, &car);
 
-    if (connect_to_controller(&car.server_fd, &car.server_addr))
-    {
-        car.connected_to_controller = true;
+	while (1)
+	{
+		bool connected = connect_to_controller(&car.server_sd, &car.server_addr);
 
-        pthread_create(&car.receiver_thread, NULL, handle_receiver, &car);
-        pthread_create(&car.connection_thread, NULL, handle_connection, &car);
+		if (connected)
+		{
+			car.connected_to_controller = true;
+			send_message(car.server_sd, "CAR %s %s %s", car.name, car.lowest_floor, car.highest_floor);
+			send_message(car.server_sd, "STATUS %s %s %s", car.state->status, car.state->current_floor, car.state->destination_floor);
 
-        send_message(car.server_fd, "CAR %s %s %s", car.name, car.lowest_floor,
-                     car.highest_floor);
-        signal_controller(&car);
-    }
+			pthread_create(&car.updater_thread, NULL, handle_updater, &car);
+			pthread_create(&car.receiver_thread, NULL, handle_receiver, &car);
+			break;
+		}
+		sleep_delay(&car);
+	}
 
-    while (1)
-    {
-        if (!car.connected_to_controller)
-        {
-            timedwait_on_floor_and_status(&car);
-            if (connect_to_controller(&car.server_fd, &car.server_addr))
-            {
-                car.connected_to_controller = true;
-
-                pthread_create(&car.receiver_thread, NULL, handle_receiver,
-                               &car);
-                pthread_create(&car.connection_thread, NULL, handle_connection,
-                               &car);
-
-                send_message(car.server_fd, "CAR %s %s %s", car.name,
-                             car.lowest_floor, car.highest_floor);
-                signal_controller(&car);
-                break;
-            }
-        }
-    }
 
     sigwait(&set, &sig);
 
     pthread_cancel(car.door_thread);
     pthread_cancel(car.level_thread);
+    pthread_cancel(car.connection_thread);
     if (car.connected_to_controller)
     {
         pthread_cancel(car.receiver_thread);
-        pthread_cancel(car.connection_thread);
+        pthread_cancel(car.updater_thread);
     }
 
     pthread_join(car.door_thread, NULL);
     pthread_join(car.level_thread, NULL);
+    pthread_join(car.connection_thread, NULL);
     if (car.connected_to_controller)
     {
         pthread_join(car.receiver_thread, NULL);
-        pthread_join(car.connection_thread, NULL);
+        pthread_join(car.updater_thread, NULL);
     }
 
     car_deinit(&car);
@@ -234,8 +222,13 @@ void car_init(car_t *car, const char *name, const char *lowest_floor,
     car->highest_floor = highest_floor;
     car->delay = (uint8_t)atoi(delay);
     car->connected_to_controller = false;
-    car->server_fd = -1;
-    car->connected_to_controller = false;
+    car->server_sd = -1;
+
+	if (pthread_mutex_init(&car->server_mutex, NULL) != 0) {
+		// Handle error if mutex initialization fails
+		perror("Failed to initialize mutex");
+		exit(1);
+	}
 
     // create the shared memory object for the cars state
     if (!create_shared_mem(&car->state, &car->fd, car->shm_name))
@@ -416,8 +409,9 @@ int cdcmp_floors(car_shared_mem *state)
         return -1;
     else if (cf_number < df_number)
         return 1;
-    else if (cf_number == df_number)
+    else 
         return 0;
+
 }
 
 void *handle_receiver(void *arg)
@@ -426,7 +420,10 @@ void *handle_receiver(void *arg)
 
     while (1)
     {
-        const char *message = receive_msg(car->server_fd);
+		// pthread_mutex_lock(&car->server_mutex);
+		// fprintf(stdout, "made it\n");
+        const char *message = receive_msg(car->server_sd);
+		// pthread_mutex_unlock(&car->server_mutex);
 
         if (strstr(message, "FLOOR"))
         {
@@ -453,27 +450,80 @@ void *handle_receiver(void *arg)
 
 void *handle_connection(void *arg)
 {
+	car_t *car = (car_t *) arg;
+
+	while (1)
+	{
+		pthread_mutex_lock(&car->server_mutex);
+		bool connected_to_controller = car->connected_to_controller;
+		// int sd = car->server_sd;
+		pthread_mutex_unlock(&car->server_mutex);
+
+        if (!connected_to_controller)
+        {
+			pthread_mutex_lock(&car->server_mutex);
+			bool connection_worked = connect_to_controller(&car->server_sd, &car->server_addr);
+			pthread_mutex_unlock(&car->server_mutex);
+
+            if (connection_worked)
+            {
+				pthread_mutex_lock(&car->server_mutex);
+				car->connected_to_controller = true;
+				send_message(car->server_sd, "CAR %s %s %s", car->name, car->lowest_floor, car->highest_floor);
+				send_message(car->server_sd, "STATUS %s %s %s", car->state->status, car->state->current_floor, car->state->destination_floor);
+				pthread_mutex_unlock(&car->server_mutex);
+
+				// pthread_create(&car->updater_thread, NULL, handle_updater, &car);
+				pthread_create(&car->receiver_thread, NULL, handle_receiver, &car);
+
+				sleep(5);
+				signal_controller(car);
+				printf("made it\n");
+            }
+        } 
+
+		sleep_delay(car);
+		pthread_testcancel();
+	}
+
+	return NULL;
+}
+
+void *handle_updater(void *arg)
+{
     car_t *car = (car_t *)arg;
 
     while (1)
     {
-        if (wait_on_floor_and_status(car) == 0)
-        {
-            // if (!car->connected_to_controller)
-            // {
-            // 	if (!connect_to_controller(&car->server_fd, &car->server_addr))
-            // 	{
-            // 		continue;
-            // 	} else {
-            // 		car->connected_to_controller = true;
-            // 		send_message(car->server_fd, "CAR %s", car->name);
-            // 		signal_controller(car);
-            // 		pthread_create(&car->receiver_thread, NULL,
-            // handle_receiver, car);
-            // 	}
-            // }
-            signal_controller(car);
-        }
+		pthread_mutex_lock(&car->state->mutex);
+        pthread_cond_wait(&car->state->cond, &car->state->mutex);
+		uint8_t individual_service_mode = car->state->individual_service_mode;
+		pthread_mutex_unlock(&car->state->mutex);
+
+		if (individual_service_mode == 1)
+		{
+			send_message(car->server_sd, "INDIVIDUAL SERVICE");
+			while (1)
+			{
+				pthread_mutex_lock(&car->state->mutex);
+				pthread_cond_wait(&car->state->cond, &car->state->mutex);
+				uint8_t individual_service_mode = car->state->individual_service_mode;
+				pthread_mutex_unlock(&car->state->mutex);
+				if (individual_service_mode == 0) 
+				{
+
+					close(car->server_sd);
+					connect_to_controller(&car->server_sd, &car->server_addr);
+					break;
+				}
+			}
+		} else {
+			signal_controller(car);
+		}
+        // if (wait_on_floor_and_status(car) == 0)
+        // {
+        //     signal_controller(car);
+        // }
 
         pthread_testcancel();
     }
@@ -481,8 +531,9 @@ void *handle_connection(void *arg)
 
 void signal_controller(car_t *car)
 {
-    send_message(car->server_fd, "STATUS %s %s %s", car->state->status,
-                 car->state->current_floor, car->state->destination_floor);
+	// pthread_mutex_lock(&car->server_mutex);
+    send_message(car->server_sd, "STATUS %s %s %s", car->state->status, car->state->current_floor, car->state->destination_floor);
+	// pthread_mutex_unlock(&car->server_mutex);
 }
 
 void sleep_delay(const car_t *car)
@@ -491,4 +542,12 @@ void sleep_delay(const car_t *car)
     req.tv_sec = 0;
     req.tv_nsec = car->delay * 1000000;
     nanosleep(&req, NULL);
+}
+
+int get_server_sd(car_t *car)
+{
+	pthread_mutex_lock(&car->server_mutex);
+	int result = car->server_sd;
+	pthread_mutex_unlock(&car->server_mutex);
+	return result;
 }

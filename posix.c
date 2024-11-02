@@ -141,7 +141,6 @@ void set_service_mode(car_shared_mem *state, uint8_t value)
     pthread_mutex_unlock(&state->mutex);
 }
 
-
 bool open_button_is(car_shared_mem *state, uint8_t value)
 {
     pthread_mutex_lock(&state->mutex);

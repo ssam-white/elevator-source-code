@@ -34,7 +34,6 @@ void set_close_button(car_shared_mem *, uint8_t);
 void set_emergency_stop(car_shared_mem *, uint8_t);
 void set_service_mode(car_shared_mem *, uint8_t);
 
-
 bool open_button_is(car_shared_mem *, uint8_t);
 bool close_button_is(car_shared_mem *, uint8_t);
 bool status_is(car_shared_mem *, const char *);

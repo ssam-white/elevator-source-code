@@ -179,7 +179,8 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
 /*
  * Adds a new car connection to the controller
  */
-void add_car_connection(controller_t *controller, int sd, const char *name, const char *lowest_floor, const char *highest_floor)
+void add_car_connection(controller_t *controller, int sd, const char *name,
+                        const char *lowest_floor, const char *highest_floor)
 {
     car_connection_t new_car_connection = {
         sd, strdup(name), strdup(lowest_floor), strdup(highest_floor), {NULL}};

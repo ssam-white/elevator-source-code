@@ -13,39 +13,44 @@
  */
 typedef enum
 {
-    UP_FLOOR = 1,   // Indicates a request to go up to a higher floor
-    DOWN_FLOOR = 0, // Indicates a request to go down to a lower floor
+    UP_FLOOR = 1,   /* Indicates a request to go up to a higher floor */
+    DOWN_FLOOR = 0, /* Indicates a request to go down to a lower floor */
 } floor_direction_t;
 
 /*
  * Structure to hold the data for each node in the queue
  */
-typedef struct
+typedef struct node_data
 {
-    floor_direction_t direction; // Direction of the floor request (up or down)
-    bool been_displayed;         // Flag indicating whether the request has been
-                                 // displayed
-    char *floor;                 // The floor number represented as a string
+    /* For determining if the node is an up floor or a down floor. */
+    floor_direction_t direction;
+    /* Flag for determining if this floor has been sent in a message to the
+     * caller. */
+    bool been_displayed;
+    /* Floor represented by a string. */
+    char *floor;
 } node_data_t;
 
 /*
- * Structure representing a node in the singly linked list
+ * Structure representing a node containing some data and a link to the next
+ * node  in the singly linked list.
  */
 typedef struct node
 {
-    node_data_t data;  // Data contained in the node
-    struct node *next; // Pointer to the next node in the queue
+    node_data_t data;
+    struct node *next;
 } node_t;
 
 /*
  * Structure for the queue itself, holding a pointer to the head node
  */
-typedef struct
+typedef struct queue
 {
-    node_t *head; // Pointer to the head node of the queue
+    /* Reference to the first node in the queue */
+    node_t *head;
 } queue_t;
 
-// Function prototypes for queue operations
+/* Function prototypes for queue operations */
 void queue_init(queue_t *);
 void queue_deinit(queue_t *);
 void node_init(node_t **, const char *, floor_direction_t, node_t *);

@@ -15,8 +15,8 @@
  * elevator cars.
  *
  * Perhaps a multi-threaded implementation could be more effective but the
- * specification requirements and the limited number of elevator shafts in typical
- * buildings make a single-threaded option robust and maintainable while
+ * specification requirements and the limited number of elevator shafts in
+ * typical buildings make a single-threaded option robust and maintainable while
  * still being efficient.
  */
 
@@ -104,7 +104,7 @@ void car_connection_deinit(car_connection_t *car_connection)
  */
 void controller_init(controller_t *controller)
 {
-    server_init(&controller->server_fd, &controller->sock);
+    server_init(&controller->server_sd, &controller->sock);
 
     controller->num_car_connections = 0;
     for (int i = 0; i < BACKLOG; i++)
@@ -119,8 +119,8 @@ void controller_init(controller_t *controller)
  */
 void controller_deinit(controller_t *controller)
 {
-    close(controller->server_fd);
-    controller->server_fd = -1;
+    close(controller->server_sd);
+    controller->server_sd = -1;
 
     /* Deinitialize each car connection if it is set */
     for (size_t i = 0; i < BACKLOG; i++)
@@ -271,8 +271,8 @@ void handle_incoming_messages(controller_t *controller)
 
     /* Clear the FD_SET */
     FD_ZERO(&controller->readfds);
-    FD_SET(controller->server_fd, &controller->readfds);
-    controller->max_sd = controller->server_fd;
+    FD_SET(controller->server_sd, &controller->readfds);
+    controller->max_sd = controller->server_sd;
 
     /* Add any current clients back into the FD_SET */
     for (int i = 0; i < BACKLOG; i++)
@@ -298,10 +298,10 @@ void handle_incoming_messages(controller_t *controller)
         return;
 
     /* Handle incoming connection requests */
-    if (FD_ISSET(controller->server_fd, &controller->readfds))
+    if (FD_ISSET(controller->server_sd, &controller->readfds))
     {
         /* Accept a new connection */
-        int client_sock = accept(controller->server_fd, NULL, NULL);
+        int client_sock = accept(controller->server_sd, NULL, NULL);
         if (client_sock < 0)
         {
             if (errno == EINTR)

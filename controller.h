@@ -53,3 +53,5 @@ void handle_car_connection_message(controller_t *, car_connection_t *, char *);
 void handle_incoming_messages(controller_t *);
 // Schedule a car for a specific floor
 void schedule_car(car_connection_t *, const char *, const char *);
+
+void shift_car_connections(controller_t *);

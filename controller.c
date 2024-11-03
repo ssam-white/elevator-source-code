@@ -140,6 +140,12 @@ void controller_deinit(controller_t *controller)
 void handle_call(controller_t *controller, int sd, const char *source_floor,
                  const char *destination_floor)
 {
+	if (controller->num_car_connections == 0)
+	{
+		send_message(sd, "UNAVAILABLE");
+		return;
+	}
+
     /*
      * Find a car capable of servicing the call and handle it.
      */
@@ -172,8 +178,6 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
             return;
         }
     }
-
-    send_message(sd, "UNAVAILABLE");
 }
 
 /*
@@ -238,12 +242,12 @@ void handle_car_connection_message(controller_t *controller,
     if (strcmp(message, "EMERGENCY") == 0 ||
         strcmp(message, "INDIVIDUAL SERVICE") == 0)
     {
-        FD_CLR(c->sd, &controller->readfds);
-        car_connection_deinit(c);
-        controller->num_car_connections -= 1;
-    }
-    else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0)
-    {
+		FD_CLR(c->sd, &controller->readfds);
+		car_connection_deinit(c);
+		shift_car_connections(controller);
+	}
+	else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0)
+	{
         /*
          * Otherwise the controller recieved a status update and should decide
          * weather it should schedule the car ferther.
@@ -278,7 +282,9 @@ void handle_incoming_messages(controller_t *controller)
     for (int i = 0; i < BACKLOG; i++)
     {
         car_connection_t car_connection = controller->car_connections[i];
-        if (car_connection.sd > 0)
+		if (car_connection.sd == -1)
+			continue;
+		else if (car_connection.sd > 0)
             FD_SET(car_connection.sd, &controller->readfds);
         if (car_connection.sd > controller->max_sd)
             controller->max_sd = car_connection.sd;
@@ -350,6 +356,25 @@ void schedule_car(car_connection_t *c, const char *status,
         if (next_floor != NULL)
         {
             send_message(c->sd, "FLOOR %s", next_floor);
+        }
+    }
+}
+
+void shift_car_connections(controller_t *controller)
+{
+    for (int i = 0; i < controller->num_car_connections; i++)
+    {
+        car_connection_t *c = &controller->car_connections[i];
+
+        if (c->sd == -1)
+        {
+            // Shift all subsequent elements up
+            for (int j = i; j < controller->num_car_connections - 1; j++)
+            {
+                controller->car_connections[j] = controller->car_connections[j + 1];
+            }
+            controller->num_car_connections -= 1; // Decrease the count
+            i -= 1; // Stay on the same index for the next iteration
         }
     }
 }

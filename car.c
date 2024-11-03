@@ -76,6 +76,15 @@ int main(int argc, char *argv[])
 
     while (keep_running)
     {
+		pthread_mutex_lock(&car.state->mutex);
+		bool service_on = car.state->individual_service_mode == 1;
+		pthread_mutex_unlock(&car.state->mutex);
+		if (service_on)
+		{
+			sleep_delay(&car);
+			continue;
+		}
+
         if (!car.connected_to_controller &&
             connect_to_controller(&car.server_sd, &car.server_addr))
         {
@@ -381,7 +390,18 @@ void *handle_updater(void *arg)
         pthread_cond_wait(&car->state->cond, &car->state->mutex);
         pthread_cleanup_pop(1);
 
-        if (service_mode_is(car->state, 1))
+		pthread_mutex_lock(&car->state->mutex);
+		uint8_t service_mode = car->state->individual_service_mode;
+		uint8_t emergency_mode = car->state->emergency_mode;
+		pthread_mutex_unlock(&car->state->mutex);
+
+		if (emergency_mode == 1)
+		{
+			send_message(car->server_sd, "EMERGENCY");
+			close(car->server_sd);
+			break;
+		}
+		else if (service_mode == 1)
         {
             send_message(car->server_sd, "INDIVIDUAL SERVICE");
             car->server_sd = -1;

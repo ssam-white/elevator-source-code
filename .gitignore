@@ -1,5 +1,2 @@
 test
-*.o
-* 
-!*/
 test.c

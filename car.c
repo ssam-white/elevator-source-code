@@ -78,8 +78,9 @@ int main(int argc, char *argv[])
     {
 		pthread_mutex_lock(&car.state->mutex);
 		bool service_on = car.state->individual_service_mode == 1;
+		bool emergency_on = car.state->emergency_mode == 1;
 		pthread_mutex_unlock(&car.state->mutex);
-		if (service_on)
+		if (service_on || emergency_on)
 		{
 			sleep_delay(&car);
 			continue;

@@ -140,12 +140,6 @@ void controller_deinit(controller_t *controller)
 void handle_call(controller_t *controller, int sd, const char *source_floor,
                  const char *destination_floor)
 {
-	if (controller->num_car_connections == 0)
-	{
-		send_message(sd, "UNAVAILABLE");
-		return;
-	}
-
     /*
      * Find a car capable of servicing the call and handle it.
      */
@@ -178,6 +172,9 @@ void handle_call(controller_t *controller, int sd, const char *source_floor,
             return;
         }
     }
+
+	/* If no car wa found. */
+	send_message(sd, "UNAVAILABLE");
 }
 
 /*

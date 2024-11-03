@@ -185,6 +185,7 @@ int main(int argc, char **argv)
     int64_t min_spent_time = INT64_MAX;
     int64_t max_wait_time = 0;
     int64_t max_spent_time = 0;
+	printf("made it\n");
     for (int i = 0; i < num_passengers; i++) {
         pthread_join(passengers[i], NULL);
 
@@ -195,6 +196,7 @@ int main(int argc, char **argv)
         min_wait_time = MIN(min_wait_time, pdata[i].time_waiting);
         min_spent_time = MIN(min_spent_time, pdata[i].time_in_elevator);
     }
+
     histogram_len = MIN(histogram_len, num_passengers);
     histogram histo_tw[histogram_len];
     histogram histo_ti[histogram_len];

@@ -48,4 +48,4 @@ void sleep_delay(const car_t *);
 int get_server_sd(car_t *);
 bool should_maintain_connection(car_t *);
 void handle_initial_connection(car_t *);
-bool is_args_valid(int, char *[]);
+bool is_args_valid(int);

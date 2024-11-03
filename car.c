@@ -271,14 +271,6 @@ void *handle_level(void *arg)
                 open_doors(car);
                 sleep_delay(car);
                 close_doors(car);
-
-                // set_status(car->state, "Opening");
-                // sleep_delay(car);
-                // set_status(car->state, "Open");
-                // sleep_delay(car);
-                // set_status(car->state, "Closing");
-                // sleep_delay(car);
-                // set_status(car->state, "Closed");
             }
         }
 
@@ -380,7 +372,7 @@ int sleep_delay_cond(car_t *car)
         /* Check if a door button was pressed */
         if (open_button == 1 || close_button == 1)
         {
-            return -1; // Interrupt sleep if a door button is pressed
+            return -1;
         }
 
         /* If the wait timed out, just return */
@@ -588,7 +580,7 @@ void handle_initial_connection(car_t *car)
 /*
  * Validates command line arguments.
  */
-bool is_args_valid(int argc, char *argv[])
+bool is_args_valid(int argc)
 {
     if (argc != 5)
     {

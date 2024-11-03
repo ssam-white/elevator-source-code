@@ -361,7 +361,7 @@ void shift_car_connections(controller_t *controller)
 {
     for (int i = 0; i < controller->num_car_connections; i++)
     {
-        car_connection_t *c = &controller->car_connections[i];
+        const car_connection_t *c = &controller->car_connections[i];
 
         if (c->sd == -1)
         {

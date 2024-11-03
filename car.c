@@ -63,7 +63,7 @@ static void signal_handler(int signum)
 int main(int argc, char *argv[])
 {
     /* Check if the correct number of command line arguments was given */
-    if (!is_args_valid(argc, argv))
+    if (!is_args_valid(argc))
     {
         return 1;
     }

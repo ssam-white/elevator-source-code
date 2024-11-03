@@ -239,9 +239,7 @@ void handle_car_connection_message(controller_t *controller,
     if (strcmp(message, "EMERGENCY") == 0 ||
         strcmp(message, "INDIVIDUAL SERVICE") == 0)
     {
-        FD_CLR(c->sd, &controller->readfds);
-        car_connection_deinit(c);
-        shift_car_connections(controller);
+        remove_car_connection(controller, c);
     }
     else if (strcmp(strtok_r(message, " ", &saveptr), "STATUS") == 0)
     {
@@ -357,22 +355,33 @@ void schedule_car(car_connection_t *c, const char *status,
     }
 }
 
-void shift_car_connections(controller_t *controller)
+/*
+ * Removes a car connection from controller>car_connection and shifts subsequent
+ * elements to close the gap.
+ */
+void remove_car_connection(controller_t *controller, car_connection_t *c)
 {
+	/* Deinitialise the car connection and remove if from the fd_set. */
+    FD_CLR(c->sd, &controller->readfds);
+    car_connection_deinit(c);
+
+	/* Find the car connection we just deinitialized. */
     for (int i = 0; i < controller->num_car_connections; i++)
     {
         const car_connection_t *c = &controller->car_connections[i];
 
         if (c->sd == -1)
         {
-            // Shift all subsequent elements up
+            /* Shift all subsequent elements up */
             for (int j = i; j < controller->num_car_connections - 1; j++)
             {
                 controller->car_connections[j] =
                     controller->car_connections[j + 1];
             }
-            controller->num_car_connections -= 1; // Decrease the count
-            i -= 1; // Stay on the same index for the next iteration
+            /* Decrease the count */
+            controller->num_car_connections -= 1;
+            /* Stay on the same index for the next iteration */
+            i -= 1;
         }
     }
 }

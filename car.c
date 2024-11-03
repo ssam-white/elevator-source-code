@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
             connect_to_controller(&car.server_sd, &car.server_addr))
         {
             car.connected_to_controller = true;
-            send_message(car.server_sd, "car %s %s %s", car.name,
+            send_message(car.server_sd, "CAR %s %s %s", car.name,
                          car.lowest_floor, car.highest_floor);
 			signal_controller(&car);
 

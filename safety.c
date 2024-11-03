@@ -137,7 +137,8 @@ bool is_shm_obstruction_valid(const car_shared_mem *state)
     // state is invalid
     bool is_valid_obstruction_state = strcmp(state->status, "Closing") == 0 ||
                                       strcmp(state->status, "Opening") == 0;
-    return state->door_obstruction == 1 && is_valid_obstruction_state;
+	if (state->door_obstruction == 0) return true;
+	else return is_valid_obstruction_state;
 }
 
 bool is_shm_data_valid(const car_shared_mem *state)

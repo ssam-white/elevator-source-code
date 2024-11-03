@@ -37,7 +37,7 @@ void *handle_connection(void *);
 void open_doors(car_t *);
 void close_doors(car_t *);
 
-int usleep_cond(car_t *);
+int sleep_delay_cond(car_t *);
 int wait_on_floor_and_status(car_t *);
 int timedwait_on_floor_and_status(car_t *);
 
@@ -46,3 +46,6 @@ int cdcmp_floors(car_shared_mem *);
 void signal_controller(car_t *);
 void sleep_delay(const car_t *);
 int get_server_sd(car_t *);
+bool should_maintain_connection(car_t *);
+void handle_initial_connection(car_t *);
+bool is_args_valid(int, char *[]);

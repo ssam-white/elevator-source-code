@@ -500,7 +500,6 @@ void *handle_updater(void *arg)
         if (emergency_mode == 1)
         {
             send_message(car->server_sd, "EMERGENCY");
-            // close(car->server_sd);
             break;
         }
         /* If individual service mode is on, alert the controller and set

@@ -76,7 +76,6 @@ bool connect_to_controller(int *sd, struct sockaddr_in *sockaddr)
     // connect to the server
     if (connect(*sd, (struct sockaddr *)sockaddr, sizeof(*sockaddr)) < 0)
     {
-        // perror("connection failed");
         close(*sd);
         *sd = -1;
         return false;

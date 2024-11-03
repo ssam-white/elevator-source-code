@@ -3,6 +3,14 @@
 #include <stdbool.h>
 
 /*
+ * This header file defines the data structure and function prototypes
+ * for the car module. The car module handles individual car (elevator) behavior
+ * including communication with the controller, managing door operations,
+ * updating current floor level, and tracking state through shared memory.
+ * Details about the specific implementation can be found in `car.c`.
+ */
+
+/*
  * This header file defines the data structures and function prototypes
  * for a queue implementation used in an elevator system. More details
  * about the implementation can be found in queue.c.

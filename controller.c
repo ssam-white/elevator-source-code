@@ -361,11 +361,11 @@ void schedule_car(car_connection_t *c, const char *status,
  */
 void remove_car_connection(controller_t *controller, car_connection_t *c)
 {
-	/* Deinitialise the car connection and remove if from the fd_set. */
+    /* Deinitialise the car connection and remove if from the fd_set. */
     FD_CLR(c->sd, &controller->readfds);
     car_connection_deinit(c);
 
-	/* Find the car connection we just deinitialized. */
+    /* Find the car connection we just deinitialized. */
     for (int i = 0; i < controller->num_car_connections; i++)
     {
         const car_connection_t *c = &controller->car_connections[i];

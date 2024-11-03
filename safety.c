@@ -1,3 +1,5 @@
+#include <signal.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -14,83 +16,111 @@
 #include "posix.h"
 #include "safety.h"
 
+/* Flag to control the main loop, modified by signal handler */
+static volatile sig_atomic_t keep_running = 1;
+
+/* Signal handler function for handling SIGINT signal */
+static void signal_handler(int signum)
+{
+    if (signum == SIGINT)
+    {
+        keep_running = 0;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        int result =
-            write(1, "Incorrect number of command line arguments\n", 43);
+        write(STDOUT_FILENO, "Incorrect number of command line arguments\n", 43);
         return 1;
     }
 
+    /* Setup the signal handler */
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGINT, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        return 1;
+    }
+
+    /* Ignore SIGPIPE to prevent program termination if a message fails to send */
+    signal(SIGPIPE, SIG_IGN);
+
+    /* Initialize the Safety structure */
     safety_t safety;
     safety_init(&safety, argv[1]);
 
     if (!connect_to_car(&safety.state, safety.shm_name, &safety.fd))
     {
         char buf[50];
-        int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n",
-                           safety.car_name);
-        int _ = write(1, buf, len);
+        int len = snprintf(buf, sizeof(buf), "Unable to access car %s.\n", safety.car_name);
+        write(STDOUT_FILENO, buf, len);
         return 1;
     }
 
-    while (1)
+    struct timespec ts;
+
+    while (keep_running)
     {
-        if (pthread_mutex_lock(&safety.state->mutex) < 0)
+        /* Set a 1-second timeout */
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += 1;
+
+        if (pthread_mutex_lock(&safety.state->mutex) != 0)
         {
+            perror("pthread_mutex_lock");
             return 1;
         }
 
-        if (pthread_cond_wait(&safety.state->cond, &safety.state->mutex) < 0)
+        int wait_result = pthread_cond_timedwait(&safety.state->cond, &safety.state->mutex, &ts);
+
+        if (wait_result != 0 && wait_result != ETIMEDOUT)
         {
-            return 1;
+            if (wait_result == EINTR) // Retry if interrupted by a signal
+            {
+                pthread_mutex_unlock(&safety.state->mutex);
+                continue;
+            }
+            perror("pthread_cond_timedwait");
+            pthread_mutex_unlock(&safety.state->mutex);
+            break;
         }
 
         if (!is_shm_data_valid(safety.state))
         {
-            int result = write(1, "Data consistancy error!\n", 24);
-            if (result < 0)
-                return 1;
-
+            write(STDOUT_FILENO, "Data consistency error!\n", 24);
             safety.state->emergency_mode = 1;
             pthread_cond_broadcast(&safety.state->cond);
         }
 
-        if (strcmp(safety.state->status, "Closing") == 0 &&
-            safety.state->door_obstruction == 1)
+        if (strcmp(safety.state->status, "Closing") == 0 && safety.state->door_obstruction == 1)
         {
             strcpy(safety.state->status, "Opening");
             pthread_cond_broadcast(&safety.state->cond);
         }
 
-        if (safety.state->emergency_stop == 1)
+        if (safety.state->emergency_stop == 1 && safety.emergency_msg_sent == 0)
         {
-            if (safety.emergency_msg_sent == 0)
-            {
-                int result = write(
-                    1, "The emergency stop button has been pressed!\n", 44);
-                if (result < 0)
-                    return 1;
-                safety.emergency_msg_sent = 1;
-            }
+            write(STDOUT_FILENO, "The emergency stop button has been pressed!\n", 44);
+            safety.emergency_msg_sent = 1;
             safety.state->emergency_mode = 1;
             pthread_cond_broadcast(&safety.state->cond);
         }
 
-        if (safety.state->overload == 1)
+        if (safety.state->overload == 1 && safety.overload_msg_sent == 0)
         {
-            if (safety.overload_msg_sent == 0)
-            {
-                int result =
-                    write(1, "The overload sensor has been tripped!\n", 38);
-                if (result < 0)
-                    return 1;
-                safety.overload_msg_sent = 1;
-            }
+            write(STDOUT_FILENO, "The overload sensor has been tripped!\n", 38);
+            safety.overload_msg_sent = 1;
             safety.state->emergency_mode = 1;
             pthread_cond_broadcast(&safety.state->cond);
         }
+
         pthread_mutex_unlock(&safety.state->mutex);
     }
 
@@ -152,3 +182,4 @@ bool is_shm_data_valid(const car_shared_mem *state)
 
     );
 }
+

@@ -11,6 +11,7 @@
  * on server connection, mutex and condition variables for syncronisation, car
  * details, thread handlers, and shared memory for tracking car state.
  */
+
 typedef struct car
 {
     int server_sd;                  // Socket descriptor for server connection

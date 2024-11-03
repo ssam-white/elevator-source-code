@@ -10,6 +10,9 @@
 
 #include "tcpip.h"
 
+/*
+ *  Creates a tcp/ip server on localhost port 3000
+ */
 void server_init(int *fd, struct sockaddr_in *sock)
 {
     memset(sock, 0, sizeof(*sock));
@@ -109,7 +112,7 @@ void send_message(int fd, const char *format, ...)
     int message_len = vsnprintf(message, sizeof(message), format, args);
     va_end(args);
 
-    if (message_len < 0 || message_len >= sizeof(message))
+    if (message_len < 0 || message_len >= (int)sizeof(message))
     {
         return;
     }
@@ -117,7 +120,7 @@ void send_message(int fd, const char *format, ...)
     uint32_t len = htonl((uint32_t)message_len);
     send_looped(fd, &len, sizeof(len));
 
-    send_looped(fd, message, message_len);
+    send_looped(fd, message, (size_t)message_len);
 }
 
 void recv_looped(int fd, void *buf, size_t sz)

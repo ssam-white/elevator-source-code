@@ -10,6 +10,10 @@
  * descriptor, car name, floor information, and a priority-based queue for
  * scheduling car requests.
  */
+
+/* Defines how many car connections the server can handle */
+#define MAX_CAR_CONNECTIONS 40
+
 typedef struct car_connection
 {
     int sd;              // Socket descriptor for the car connection
@@ -31,7 +35,8 @@ typedef struct controller
     fd_set readfds;             // Set of file descriptors for reading
     int max_sd;                 // Maximum socket descriptor
     size_t num_car_connections; // Number of active car connections
-    car_connection_t car_connections[BACKLOG]; // Array of car connections
+    car_connection_t
+        car_connections[MAX_CAR_CONNECTIONS]; // Array of car connections
 } controller_t;
 
 /* Function prototypes for managing the controller and car connections */

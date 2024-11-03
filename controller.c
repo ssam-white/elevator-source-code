@@ -107,7 +107,7 @@ void controller_init(controller_t *controller)
     server_init(&controller->server_sd, &controller->sock);
 
     controller->num_car_connections = 0;
-    for (int i = 0; i < BACKLOG; i++)
+    for (int i = 0; i < MAX_CAR_CONNECTIONS; i++)
     {
         car_connection_init(&controller->car_connections[i]);
     }
@@ -123,7 +123,7 @@ void controller_deinit(controller_t *controller)
     controller->server_sd = -1;
 
     /* Deinitialize each car connection if it is set */
-    for (size_t i = 0; i < BACKLOG; i++)
+    for (size_t i = 0; i < MAX_CAR_CONNECTIONS; i++)
     {
         car_connection_t *c = &controller->car_connections[i];
         if (FD_ISSET(c->sd, &controller->readfds))
@@ -274,7 +274,7 @@ void handle_incoming_messages(controller_t *controller)
     controller->max_sd = controller->server_sd;
 
     /* Add any current clients back into the FD_SET */
-    for (int i = 0; i < BACKLOG; i++)
+    for (int i = 0; i < MAX_CAR_CONNECTIONS; i++)
     {
         car_connection_t car_connection = controller->car_connections[i];
         if (car_connection.sd == -1)
@@ -320,7 +320,7 @@ void handle_incoming_messages(controller_t *controller)
     }
 
     /* Handle incoming messages from car connections */
-    for (int i = 0; i < BACKLOG; i++)
+    for (int i = 0; i < MAX_CAR_CONNECTIONS; i++)
     {
         car_connection_t *c = &controller->car_connections[i];
         if (FD_ISSET(c->sd, &controller->readfds))
@@ -366,14 +366,14 @@ void remove_car_connection(controller_t *controller, car_connection_t *c)
     car_connection_deinit(c);
 
     /* Find the car connection we just deinitialized. */
-    for (int i = 0; i < controller->num_car_connections; i++)
+    for (size_t i = 0; i < controller->num_car_connections; i++)
     {
-        const car_connection_t *c = &controller->car_connections[i];
+        const car_connection_t *curr_c = &controller->car_connections[i];
 
-        if (c->sd == -1)
+        if (curr_c->sd == -1)
         {
             /* Shift all subsequent elements up */
-            for (int j = i; j < controller->num_car_connections - 1; j++)
+            for (size_t j = i; j < controller->num_car_connections - 1; j++)
             {
                 controller->car_connections[j] =
                     controller->car_connections[j + 1];

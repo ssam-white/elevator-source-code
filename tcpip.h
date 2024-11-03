@@ -5,7 +5,6 @@
 
 #define PORT 3000
 #define URL "127.0.0.1"
-#define BACKLOG 10
 
 void server_init(int *, struct sockaddr_in *);
 bool connect_to_controller(int *, struct sockaddr_in *);
